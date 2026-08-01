@@ -8,7 +8,7 @@ function App() {
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-stone-50 text-stone-800">
-        <nav className="border-b border-stone-200 px-6 py-3 flex gap-4 text-sm">
+        <nav className="sticky top-0 z-40 bg-stone-50 border-b border-stone-200 px-6 py-3 flex gap-4 text-sm">
           <Link to="/" className="text-stone-600 hover:text-stone-900">
             主世界
           </Link>

@@ -139,7 +139,13 @@ export default function WorldEdit() {
         <div>
           <div className="flex items-center gap-3">
             <Link to="/" className="text-stone-400 hover:text-stone-600 transition-colors text-sm">← 返回</Link>
-            <h1 className="text-2xl font-light">{world.name}</h1>
+            <input
+              type="text"
+              value={world.name}
+              onChange={e => setWorld({ ...world, name: e.target.value })}
+              className="text-2xl font-light bg-transparent border-none outline-none focus:border-b focus:border-stone-300 transition-colors"
+              style={{ minWidth: '100px', width: `${Math.max(world.name.length, 3)}ch` }}
+            />
           </div>
           <p className="text-xs text-stone-400 mt-1">编辑世界设定</p>
         </div>

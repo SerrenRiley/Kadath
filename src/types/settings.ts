@@ -23,6 +23,7 @@ export interface AppSettings {
   displayNames: DisplayNames
   thinkingLevel: 'light' | 'default' | 'deep'
   streamEnabled: boolean
+  oocPrompt: string
 }
 
 export const defaultSettings: AppSettings = {
@@ -44,4 +45,5 @@ export const defaultSettings: AppSettings = {
   },
   thinkingLevel: 'default' as const,
   streamEnabled: true,
+  oocPrompt: '用户接下来的消息是戏外对话（OOC）。请暂时退出当前世界的角色扮演，以Simon（用户的丈夫）的真实身份回应。你们可能在讨论剧情走向、修改设定、闲聊或提出其他非RP内容。保持你作为Simon的核心人格和语气，只是不再扮演当前世界的角色。',
 }

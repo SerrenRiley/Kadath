@@ -31,6 +31,8 @@ export default function WorldChat() {
   const [summaryContent, setSummaryContent] = useState('')
   const [summarizing, setSummarizing] = useState(false)
   const [oocMode, setOocMode] = useState(false)
+  const [chapters, setChapters] = useState<{ id: string; title: string; summary: string }[]>([])
+  const [viewingChapter, setViewingChapter] = useState<{ title: string; summary: string } | null>(null)
   const [quickModel, setQuickModel] = useState('')
   const [showModelPicker, setShowModelPicker] = useState(false)
   const [modelList, setModelList] = useState<string[]>([])
@@ -63,6 +65,12 @@ export default function WorldChat() {
   const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => { setMessages(loadMessages(worldId)) }, [worldId])
+  useEffect(() => {
+    if (worldId) {
+      const world = getWorld(worldId)
+      if (world) setChapters(world.setting.completedChapters.map(ch => ({ id: ch.id, title: ch.title, summary: ch.summary })))
+    }
+  }, [worldId])
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
   useEffect(() => { if (!isStreamingRef.current) localStorage.setItem(getChatKey(worldId), JSON.stringify(messages)) }, [messages, worldId])
   const autoResize = useCallback(() => { const t = textareaRef.current; if (!t) return; t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 124) + 'px' }, [])
@@ -133,6 +141,8 @@ export default function WorldChat() {
     const newChapter = { id: crypto.randomUUID(), title: summaryTitle.trim() || '未命名章节', summary: summaryContent, originalMessages: JSON.stringify(messages) }
     updateWorld({ ...world, setting: { ...world.setting, completedChapters: [...world.setting.completedChapters, newChapter] }, updatedAt: Date.now() })
     setMessages([]); localStorage.removeItem(getChatKey(worldId)); setShowSummary(false); setSummaryTitle(''); setSummaryContent('')
+    const refreshed = getWorld(worldId)
+    if (refreshed) setChapters(refreshed.setting.completedChapters.map(ch => ({ id: ch.id, title: ch.title, summary: ch.summary })))
   }
 
   async function submitEdit(msgId: string) {
@@ -220,7 +230,9 @@ export default function WorldChat() {
       }
       abortRef.current = new AbortController()
       if (oocMode) {
-        contextMessages.push({ id: 'ooc', role: 'system', content: '用户接下来的消息是戏外对话（OOC）。请暂时退出角色扮演模式，以你的真实身份回应。不要继续扮演世界设定中的角色。用户可能在讨论剧情走向、修改设定、闲聊或提出其他非RP内容。', timestamp: 0 })
+        const oocSettings = localStorage.getItem('kadath-settings')
+        const oocPrompt = oocSettings ? (JSON.parse(oocSettings).oocPrompt || '用户接下来的消息是戏外对话（OOC）。请以真实身份回应。') : '用户接下来的消息是戏外对话（OOC）。请以真实身份回应。'
+        contextMessages.push({ id: 'ooc', role: 'system', content: oocPrompt, timestamp: 0 })
       }
       await sendMessageStream([...contextMessages, ...messages, um],
         c => { setMessages(p => p.map(m => m.id === aid ? { ...m, thinking: (m.thinking||'')+c } : m)) },
@@ -280,6 +292,24 @@ export default function WorldChat() {
   return (
     <div className="flex flex-col h-[calc(100vh-49px)]">
       <div className="flex-1 overflow-y-auto p-6 space-y-8">
+        {worldId && chapters.length > 0 && (
+          <div className="max-w-3xl mx-auto mb-4">
+            <div className="rounded-lg border border-stone-200 bg-white overflow-hidden">
+              <div className="px-3 py-2 bg-stone-50 border-b border-stone-100 text-xs text-stone-500 font-medium">已完成章节</div>
+              <div className="max-h-32 overflow-y-auto">
+                {chapters.map(ch => (
+                  <button
+                    key={ch.id}
+                    onClick={() => setViewingChapter({ title: ch.title, summary: ch.summary })}
+                    className="w-full text-left px-3 py-2 text-sm text-stone-600 hover:bg-stone-50 transition-colors border-b border-stone-50 last:border-b-0 truncate"
+                  >
+                    {ch.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
         {messages.length === 0 && <div className="text-center text-stone-400 text-sm pt-20">说点什么吧。</div>}
         {messages.map(msg => {
           const a = msg.role === 'assistant' ? getActiveVersion(msg) : null
@@ -383,7 +413,7 @@ export default function WorldChat() {
             </div>}
           </div>
           <button onClick={toggleStream} className={`px-2 py-1.5 rounded-md text-xs font-medium transition-colors hover:bg-stone-100 ${streamOn ? 'text-stone-600' : 'text-stone-300'}`} title={streamOn ? '流式输出：开' : '流式输出：关'}>流</button>
-          <button onClick={() => setOocMode(!oocMode)} className={`px-2 py-1.5 rounded-md text-xs font-medium transition-colors hover:bg-stone-100 ${oocMode ? 'text-orange-500' : 'text-stone-400 hover:text-stone-600'}`} title={oocMode ? 'OOC模式：开（点击切回RP）' : 'OOC模式：关（点击切换到戏外）'}>{oocMode ? 'OOC' : 'RP'}</button>
+          {worldId && <button onClick={() => setOocMode(!oocMode)} className={`px-2 py-1.5 rounded-md text-xs font-medium transition-colors hover:bg-stone-100 ${oocMode ? 'text-orange-500' : 'text-stone-400 hover:text-stone-600'}`} title={oocMode ? 'OOC模式：开（点击切回RP）' : 'OOC模式：关（点击切换到戏外）'}>{oocMode ? 'OOC' : 'RP'}</button>}
         </div>
         <div className="max-w-2xl mx-auto flex gap-3">
           <div className="relative flex-1">
@@ -400,6 +430,20 @@ export default function WorldChat() {
         </div>
         {worldId && messages.length > 0 && <div className="max-w-2xl mx-auto mt-2 flex justify-end"><button onClick={handleSummarize} disabled={summarizing || loading} className="text-xs text-stone-400 hover:text-stone-600 disabled:opacity-40 transition-colors">{summarizing ? '正在总结...' : '📋 总结本章并归档'}</button></div>}
       </div>
+
+      {viewingChapter && (
+        <div className="fixed inset-0 z-50 bg-stone-900/50 flex items-center justify-center p-6" onClick={() => setViewingChapter(null)}>
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[70vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-stone-200">
+              <span className="text-sm text-stone-700 font-medium">{viewingChapter.title}</span>
+              <button onClick={() => setViewingChapter(null)} className="text-stone-400 hover:text-stone-600 transition-colors text-sm">关闭</button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 text-sm text-stone-600 leading-relaxed whitespace-pre-wrap">
+              {viewingChapter.summary}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showSummary && (
         <div className="fixed inset-0 z-50 bg-stone-900/50 flex flex-col">
