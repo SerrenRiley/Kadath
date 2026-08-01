@@ -31,6 +31,10 @@ export interface AppSettings {
     password: string
     path: string
   }
+  supabase: {
+    projectUrl: string
+    anonKey: string
+  }
 }
 
 export const defaultSettings: AppSettings = {
@@ -59,5 +63,9 @@ export const defaultSettings: AppSettings = {
     username: '',
     password: '',
     path: 'kadath_backups',
+  },
+  supabase: {
+    projectUrl: '',
+    anonKey: '',
   },
 }

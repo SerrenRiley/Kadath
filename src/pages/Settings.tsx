@@ -237,6 +237,105 @@ export default function Settings() {
       </section>
 
       <section className="space-y-3">
+        <h2 className="text-lg font-medium text-stone-700">Supabase 云同步</h2>
+        <p className="text-xs text-stone-400">通过Supabase Storage将数据备份到云端。无需梯子，国内直连。</p>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-stone-500 mb-1 block">Project URL</label>
+            <input type="text" value={settings.supabase.projectUrl} onChange={e => setSettings(prev => ({ ...prev, supabase: { ...prev.supabase, projectUrl: e.target.value } }))} placeholder="https://xxxxx.supabase.co" className="w-full p-3 text-sm rounded-lg border border-stone-200 bg-white focus:outline-none focus:border-stone-400 transition-colors" />
+          </div>
+          <div>
+            <label className="text-xs text-stone-500 mb-1 block">Anon Key</label>
+            <input type="password" value={settings.supabase.anonKey} onChange={e => setSettings(prev => ({ ...prev, supabase: { ...prev.supabase, anonKey: e.target.value } }))} placeholder="eyJhb..." className="w-full p-3 text-sm rounded-lg border border-stone-200 bg-white focus:outline-none focus:border-stone-400 transition-colors" />
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={async () => {
+                const { projectUrl, anonKey } = settings.supabase
+                if (!projectUrl || !anonKey) { alert('请填写Supabase配置'); return }
+                try {
+                  const testData = JSON.stringify({ test: true, time: new Date().toISOString() })
+                  const res = await fetch(`${projectUrl}/storage/v1/object/kadath/kadath-test.json`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${anonKey}`, 'apikey': anonKey, 'Content-Type': 'application/json', 'x-upsert': 'true' },
+                    body: testData,
+                  })
+                  if (res.ok || res.status === 200) {
+                    await fetch(`${projectUrl}/storage/v1/object/kadath/kadath-test.json`, {
+                      method: 'DELETE',
+                      headers: { 'Authorization': `Bearer ${anonKey}`, 'apikey': anonKey },
+                    })
+                    alert('✓ 连接成功！读写正常。')
+                  } else {
+                    const text = await res.text().catch(() => '')
+                    alert(`连接失败：HTTP ${res.status}\n${text}`)
+                  }
+                } catch (err) { alert('连接失败：' + (err instanceof Error ? err.message : '未知错误')) }
+              }}
+              className="px-4 py-2 text-sm rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-colors"
+            >
+              测试连接
+            </button>
+            <button
+              onClick={async () => {
+                const { projectUrl, anonKey } = settings.supabase
+                if (!projectUrl || !anonKey) { alert('请填写Supabase配置'); return }
+                try {
+                  const res = await fetch(`${projectUrl}/storage/v1/object/kadath/kadath-backup.json`, {
+                    headers: { 'Authorization': `Bearer ${anonKey}`, 'apikey': anonKey },
+                  })
+                  if (!res.ok) { alert('恢复失败：找不到备份文件'); return }
+                  const data = await res.json()
+                  if (typeof data !== 'object') { alert('恢复失败：文件格式不正确'); return }
+                  if (!confirm(`确定要从云端恢复数据吗？这会覆盖当前所有Kadath数据。\n\n检测到 ${Object.keys(data).length} 条数据记录。`)) return
+                  Object.entries(data).forEach(([key, value]) => {
+                    if (key.startsWith('kadath')) localStorage.setItem(key, value as string)
+                  })
+                  alert('恢复成功！页面将刷新。')
+                  window.location.reload()
+                } catch (err) { alert('恢复失败：' + (err instanceof Error ? err.message : '未知错误')) }
+              }}
+              className="px-4 py-2 text-sm rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-colors"
+            >
+              恢复
+            </button>
+            <button
+              onClick={async () => {
+                const { projectUrl, anonKey } = settings.supabase
+                if (!projectUrl || !anonKey) { alert('请填写Supabase配置'); return }
+                try {
+                  const backupData: Record<string, string> = {}
+                  for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i)
+                    if (key && key.startsWith('kadath')) backupData[key] = localStorage.getItem(key) || ''
+                  }
+                  const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' })
+                  const res = await fetch(`${projectUrl}/storage/v1/object/kadath/kadath-backup.json`, {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${anonKey}`,
+                      'apikey': anonKey,
+                      'Content-Type': 'application/json',
+                      'x-upsert': 'true',
+                    },
+                    body: blob,
+                  })
+                  if (res.ok || res.status === 200) alert('✓ 备份成功！')
+                  else {
+                    const text = await res.text().catch(() => '')
+                    alert(`备份失败：HTTP ${res.status}\n${text}`)
+                  }
+                } catch (err) { alert('备份失败：' + (err instanceof Error ? err.message : '未知错误')) }
+              }}
+              className="px-4 py-2 text-sm rounded-lg bg-stone-800 text-stone-50 hover:bg-stone-700 transition-colors"
+            >
+              立即备份
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-3">
         <h2 className="text-lg font-medium text-stone-700">WebDAV 云同步</h2>
         <p className="text-xs text-stone-400">通过WebDAV将数据备份到坚果云。需要先部署Cloudflare Worker作为转发代理。</p>
         <div className="space-y-3">
