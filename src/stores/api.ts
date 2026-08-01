@@ -17,6 +17,15 @@ function getThinkingParams(level: string) {
   }
 }
 
+function stripThinkTags(text: string): string {
+  return text.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').trim()
+}
+
+function extractThinkContent(text: string): string | null {
+  const match = text.match(/<think>([\s\S]*?)<\/think>/)
+  return match ? match[1].trim() : null
+}
+
 export async function sendMessageStream(
   messages: Message[],
   onThinking: (chunk: string) => void,
@@ -38,6 +47,7 @@ export async function sendMessageStream(
   const thinkingParams = getThinkingParams(settings.thinkingLevel)
   const body: any = { model: modelName, messages: apiMessages, ...thinkingParams }
 
+  // 非流式
   if (!settings.streamEnabled) {
     const response = await fetch(`${apiUrl}/chat/completions`, {
       method: 'POST',
@@ -49,19 +59,16 @@ export async function sendMessageStream(
     const data = await response.json()
     const msg = data.choices[0].message
 
-    if (msg.reasoning_content) {
-      onThinking(msg.reasoning_content)
-    }
+    const hasReasoning = !!msg.reasoning_content
+    if (hasReasoning) onThinking(msg.reasoning_content)
 
     if (msg.content) {
-      const thinkMatch = msg.content.match(/<think>([\s\S]*?)<\/think>/)
-      if (thinkMatch) {
-        if (!msg.reasoning_content) onThinking(thinkMatch[1].trim())
-        const clean = msg.content.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/, '').trim()
-        if (clean) onContent(clean)
-      } else {
-        onContent(msg.content.replace(/^<br\s*\/?>\s*/gi, ''))
+      if (!hasReasoning) {
+        const thinkText = extractThinkContent(msg.content)
+        if (thinkText) onThinking(thinkText)
       }
+      const clean = stripThinkTags(msg.content)
+      if (clean) onContent(clean)
     }
 
     if (data.usage) {
@@ -70,6 +77,7 @@ export async function sendMessageStream(
     return
   }
 
+  // 流式
   body.stream = true
   body.stream_options = { include_usage: true }
 
@@ -84,9 +92,9 @@ export async function sendMessageStream(
   const reader = response.body!.getReader()
   const decoder = new TextDecoder()
   let lineBuffer = ''
-  let inThink = false
-  let tagBuffer = ''
   let hasReasoningField = false
+  let inThinkTag = false
+  let tagBuffer = ''
 
   while (true) {
     const { done, value } = await reader.read()
@@ -101,10 +109,7 @@ export async function sendMessageStream(
       if (!trimmed.startsWith('data: ')) continue
       const data = trimmed.slice(6)
       if (data === '[DONE]') {
-        if (tagBuffer) {
-          if (inThink) onThinking(tagBuffer)
-          else onContent(tagBuffer)
-        }
+        if (tagBuffer && !inThinkTag) onContent(tagBuffer.replace(/<br\s*\/?>/gi, ''))
         return
       }
 
@@ -116,16 +121,41 @@ export async function sendMessageStream(
         const delta = parsed.choices?.[0]?.delta
         if (!delta) continue
 
+        // reasoning_content 字段优先
         if (delta.reasoning_content) {
           hasReasoningField = true
           onThinking(delta.reasoning_content)
         }
 
         if (delta.content) {
-          tagBuffer += delta.content
+          // 如果已经有reasoning_content字段，直接清除<think>标签输出content
+          if (hasReasoningField) {
+            tagBuffer += delta.content
+            // 尝试清除完整的<think>...</think>块
+            const cleaned = tagBuffer.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<br\s*\/?>/gi, '')
+            // 检查是否还有未闭合的<think>标签
+            const lastOpen = tagBuffer.lastIndexOf('<think>')
+            const lastClose = tagBuffer.lastIndexOf('</think>')
+            if (lastOpen > lastClose) {
+              // 还在<think>标签内，只输出<think>之前的部分
+              const beforeThink = tagBuffer.slice(0, lastOpen).replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<br\s*\/?>/gi, '')
+              if (beforeThink && beforeThink !== tagBuffer.slice(0, lastOpen).replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<br\s*\/?>/gi, '')) {
+                // 太复杂了，用简单方法：暂存不输出
+              }
+            } else if (lastOpen === -1 || lastClose > lastOpen) {
+              // 没有未闭合标签，安全输出
+              if (cleaned) {
+                onContent(cleaned)
+                tagBuffer = ''
+              }
+            }
+            continue
+          }
 
+          // 没有reasoning_content字段，用状态机解析<think>标签
+          tagBuffer += delta.content
           while (tagBuffer.length > 0) {
-            if (!inThink) {
+            if (!inThinkTag) {
               const openIdx = tagBuffer.indexOf('<think>')
               if (openIdx !== -1) {
                 if (openIdx > 0) {
@@ -133,42 +163,35 @@ export async function sendMessageStream(
                   if (before) onContent(before)
                 }
                 tagBuffer = tagBuffer.slice(openIdx + 7)
-                inThink = true
+                inThinkTag = true
                 continue
               }
-
-              let safeEnd = tagBuffer.length
+              // 检查是否可能有部分<think>标签
+              let safe = tagBuffer.length
               for (let i = 1; i <= Math.min(6, tagBuffer.length); i++) {
-                if ('<think>'.startsWith(tagBuffer.slice(-i))) {
-                  safeEnd = tagBuffer.length - i
-                  break
-                }
+                if ('<think>'.startsWith(tagBuffer.slice(-i))) { safe = tagBuffer.length - i; break }
               }
-              if (safeEnd > 0) {
-                const safe = tagBuffer.slice(0, safeEnd).replace(/<br\s*\/?>/gi, '')
-                if (safe) onContent(safe)
-                tagBuffer = tagBuffer.slice(safeEnd)
+              if (safe > 0) {
+                const out = tagBuffer.slice(0, safe).replace(/<br\s*\/?>/gi, '')
+                if (out) onContent(out)
+                tagBuffer = tagBuffer.slice(safe)
               }
               break
             } else {
               const closeIdx = tagBuffer.indexOf('</think>')
               if (closeIdx !== -1) {
-                if (closeIdx > 0 && !hasReasoningField) onThinking(tagBuffer.slice(0, closeIdx))
+                if (closeIdx > 0) onThinking(tagBuffer.slice(0, closeIdx))
                 tagBuffer = tagBuffer.slice(closeIdx + 8)
-                inThink = false
+                inThinkTag = false
                 continue
               }
-
-              let safeEnd = tagBuffer.length
+              let safe = tagBuffer.length
               for (let i = 1; i <= Math.min(7, tagBuffer.length); i++) {
-                if ('</think>'.startsWith(tagBuffer.slice(-i))) {
-                  safeEnd = tagBuffer.length - i
-                  break
-                }
+                if ('</think>'.startsWith(tagBuffer.slice(-i))) { safe = tagBuffer.length - i; break }
               }
-              if (safeEnd > 0) {
-                if (!hasReasoningField) onThinking(tagBuffer.slice(0, safeEnd))
-                tagBuffer = tagBuffer.slice(safeEnd)
+              if (safe > 0) {
+                onThinking(tagBuffer.slice(0, safe))
+                tagBuffer = tagBuffer.slice(safe)
               }
               break
             }
@@ -179,8 +202,11 @@ export async function sendMessageStream(
   }
 
   if (tagBuffer) {
-    if (inThink && !hasReasoningField) onThinking(tagBuffer)
-    else if (!inThink) onContent(tagBuffer)
+    if (inThinkTag) onThinking(tagBuffer)
+    else {
+      const clean = tagBuffer.replace(/<br\s*\/?>/gi, '')
+      if (clean) onContent(clean)
+    }
   }
 }
 

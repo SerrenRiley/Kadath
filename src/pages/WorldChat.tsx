@@ -63,16 +63,29 @@ export default function WorldChat() {
     const msg = messages.find(m => m.id === msgId)
     if (!msg) return
     const isUser = msg.role === 'user'
-    const confirmMsg = isUser ? '确定要删除这条消息吗？下方的AI回复也会一并删除。' : '确定要删除这条回复吗？'
-    if (!confirm(confirmMsg)) return
-    setMessages(prev => {
-      const idx = prev.findIndex(m => m.id === msgId)
-      if (idx === -1) return prev
-      if (!isUser) return prev.filter(m => m.id !== msgId)
-      const next = prev[idx + 1]
-      if (next && next.role === 'assistant') return prev.filter(m => m.id !== msgId && m.id !== next.id)
-      return prev.filter(m => m.id !== msgId)
-    })
+
+    if (isUser && msg.versions && msg.versions.length > 1) {
+      if (!confirm('确定要删除当前版本吗？')) return
+      setMessages(prev => prev.map(m => {
+        if (m.id !== msgId || !m.versions) return m
+        const currentIdx = m.activeVersion ?? 0
+        const newVersions = m.versions.filter((_, i) => i !== currentIdx)
+        const newActive = Math.min(currentIdx, newVersions.length - 1)
+        return { ...m, content: newVersions[newActive].content, versions: newVersions, activeVersion: newActive }
+      }))
+    } else if (isUser) {
+      if (!confirm('确定要删除这条消息吗？下方的AI回复也会一并删除。')) return
+      setMessages(prev => {
+        const idx = prev.findIndex(m => m.id === msgId)
+        if (idx === -1) return prev
+        const next = prev[idx + 1]
+        if (next && next.role === 'assistant') return prev.filter(m => m.id !== msgId && m.id !== next.id)
+        return prev.filter(m => m.id !== msgId)
+      })
+    } else {
+      if (!confirm('确定要删除这条回复吗？')) return
+      setMessages(prev => prev.filter(m => m.id !== msgId))
+    }
   }
 
   function toggleThinking(id: string) { setThinkingOpen(p => ({ ...p, [id]: !p[id] })) }
