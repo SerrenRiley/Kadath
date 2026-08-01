@@ -128,25 +128,44 @@ export async function sendMessageStream(
         }
 
         if (delta.content) {
-          // 如果已经有reasoning_content字段，直接清除<think>标签输出content
+          // 如果已经有reasoning_content字段，跳过<think>标签内容，只输出正文
           if (hasReasoningField) {
             tagBuffer += delta.content
-            // 尝试清除完整的<think>...</think>块
-            const cleaned = tagBuffer.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<br\s*\/?>/gi, '')
-            // 检查是否还有未闭合的<think>标签
-            const lastOpen = tagBuffer.lastIndexOf('<think>')
-            const lastClose = tagBuffer.lastIndexOf('</think>')
-            if (lastOpen > lastClose) {
-              // 还在<think>标签内，只输出<think>之前的部分
-              const beforeThink = tagBuffer.slice(0, lastOpen).replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<br\s*\/?>/gi, '')
-              if (beforeThink && beforeThink !== tagBuffer.slice(0, lastOpen).replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<br\s*\/?>/gi, '')) {
-                // 太复杂了，用简单方法：暂存不输出
-              }
-            } else if (lastOpen === -1 || lastClose > lastOpen) {
-              // 没有未闭合标签，安全输出
-              if (cleaned) {
-                onContent(cleaned)
-                tagBuffer = ''
+            while (tagBuffer.length > 0) {
+              if (!inThinkTag) {
+                const openIdx = tagBuffer.indexOf('<think>')
+                if (openIdx !== -1) {
+                  if (openIdx > 0) {
+                    const before = tagBuffer.slice(0, openIdx).replace(/<br\s*\/?>/gi, '')
+                    if (before) onContent(before)
+                  }
+                  tagBuffer = tagBuffer.slice(openIdx + 7)
+                  inThinkTag = true
+                  continue
+                }
+                let safe = tagBuffer.length
+                for (let i = 1; i <= Math.min(6, tagBuffer.length); i++) {
+                  if ('<think>'.startsWith(tagBuffer.slice(-i))) { safe = tagBuffer.length - i; break }
+                }
+                if (safe > 0) {
+                  const out = tagBuffer.slice(0, safe).replace(/<br\s*\/?>/gi, '')
+                  if (out) onContent(out)
+                  tagBuffer = tagBuffer.slice(safe)
+                }
+                break
+              } else {
+                const closeIdx = tagBuffer.indexOf('</think>')
+                if (closeIdx !== -1) {
+                  tagBuffer = tagBuffer.slice(closeIdx + 8)
+                  inThinkTag = false
+                  continue
+                }
+                let safe = tagBuffer.length
+                for (let i = 1; i <= Math.min(7, tagBuffer.length); i++) {
+                  if ('</think>'.startsWith(tagBuffer.slice(-i))) { safe = tagBuffer.length - i; break }
+                }
+                if (safe > 0) tagBuffer = tagBuffer.slice(safe)
+                break
               }
             }
             continue

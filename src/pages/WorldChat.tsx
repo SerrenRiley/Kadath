@@ -306,6 +306,7 @@ export default function WorldChat() {
             </div>}
           </div>
           <button onClick={toggleStream} className={`px-2 py-1.5 rounded-md text-xs font-medium transition-colors hover:bg-stone-100 ${streamOn ? 'text-stone-600' : 'text-stone-300'}`} title={streamOn ? '流式输出：开' : '流式输出：关'}>流</button>
+          <button onClick={() => { setInput(prev => (prev ? prev + '\n' : '') + '[OOC] ') }} className="px-2 py-1.5 rounded-md text-xs font-medium text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors" title="插入OOC标记">OOC</button>
         </div>
         <div className="max-w-2xl mx-auto flex gap-3">
           <div className="relative flex-1">
