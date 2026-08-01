@@ -30,6 +30,7 @@ export default function WorldChat() {
   const [summaryTitle, setSummaryTitle] = useState('')
   const [summaryContent, setSummaryContent] = useState('')
   const [summarizing, setSummarizing] = useState(false)
+  const [oocMode, setOocMode] = useState(false)
   const [quickModel, setQuickModel] = useState('')
   const [showModelPicker, setShowModelPicker] = useState(false)
   const [modelList, setModelList] = useState<string[]>([])
@@ -39,6 +40,20 @@ export default function WorldChat() {
   const [showThinkingPicker, setShowThinkingPicker] = useState(false)
   const [streamOn, setStreamOn] = useState(() => { const s = localStorage.getItem('kadath-settings'); if (s) { return JSON.parse(s).streamEnabled !== false }; return true })
   const [thinkingLevel, setThinkingLevel] = useState(() => { const s = localStorage.getItem('kadath-settings'); if (s) { return JSON.parse(s).thinkingLevel || 'default' }; return 'default' })
+  function cleanContent(content: string, hasThinking: boolean): string {
+    if (!hasThinking) return content
+    return content.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think>[\s\S]*/g, '').trim()
+  }
+
+  function extractThinkFromContent(content: string): { thinking: string; clean: string } {
+    const match = content.match(/<think>([\s\S]*?)<\/think>/)
+    if (match) {
+      const clean = content.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').trim()
+      return { thinking: match[1].trim(), clean }
+    }
+    return { thinking: '', clean: content }
+  }
+
   const dn = loadDisplayNames()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -163,7 +178,30 @@ export default function WorldChat() {
       u => { setMessages(p => p.map((m, i) => { if (i !== mi || !m.versions) return m; return { ...m, versions: m.versions.map((v, j) => j === vi ? { ...v, usage: u } : v) } })) },
       abortRef.current.signal,
     ) } catch (e) { if (e instanceof Error && e.name === 'AbortError') { /* 用户主动停止 */ } else { setError(e instanceof Error ? e.message : '生成失败') } }
-    finally { setLoading(false); isStreamingRef.current = false; setMessages(p => { localStorage.setItem(getChatKey(worldId), JSON.stringify(p)); return p }) }
+    finally {
+      setLoading(false); isStreamingRef.current = false
+      setMessages(p => {
+        const cleaned = p.map(m => {
+          if (m.role !== 'assistant') return m
+          if (m.thinking && m.content) {
+            const cleanedContent = m.content.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think>[\s\S]*/g, '').trim()
+            return { ...m, content: cleanedContent }
+          }
+          if (m.versions) {
+            const cleanedVersions = m.versions.map(v => {
+              if (v.thinking && v.content) {
+                return { ...v, content: v.content.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think>[\s\S]*/g, '').trim() }
+              }
+              return v
+            })
+            return { ...m, versions: cleanedVersions }
+          }
+          return m
+        })
+        localStorage.setItem(getChatKey(worldId), JSON.stringify(cleaned))
+        return cleaned
+      })
+    }
   }
 
   async function handleSend() {
@@ -181,6 +219,9 @@ export default function WorldChat() {
         }
       }
       abortRef.current = new AbortController()
+      if (oocMode) {
+        contextMessages.push({ id: 'ooc', role: 'system', content: '用户接下来的消息是戏外对话（OOC）。请暂时退出角色扮演模式，以你的真实身份回应。不要继续扮演世界设定中的角色。用户可能在讨论剧情走向、修改设定、闲聊或提出其他非RP内容。', timestamp: 0 })
+      }
       await sendMessageStream([...contextMessages, ...messages, um],
         c => { setMessages(p => p.map(m => m.id === aid ? { ...m, thinking: (m.thinking||'')+c } : m)) },
         c => { setThinkingOpen(p => ({ ...p, [aid]: false })); setMessages(p => p.map(m => m.id === aid ? { ...m, content: m.content+c } : m)) },
@@ -188,7 +229,30 @@ export default function WorldChat() {
         abortRef.current.signal,
       )
     } catch (e) { if (e instanceof Error && e.name === 'AbortError') { /* 用户主动停止 */ } else { setError(e instanceof Error ? e.message : '发送失败') } }
-    finally { setLoading(false); isStreamingRef.current = false; setMessages(p => { localStorage.setItem(getChatKey(worldId), JSON.stringify(p)); return p }) }
+    finally {
+      setLoading(false); isStreamingRef.current = false
+      setMessages(p => {
+        const cleaned = p.map(m => {
+          if (m.role !== 'assistant') return m
+          if (m.thinking && m.content) {
+            const cleanedContent = m.content.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think>[\s\S]*/g, '').trim()
+            return { ...m, content: cleanedContent }
+          }
+          if (m.versions) {
+            const cleanedVersions = m.versions.map(v => {
+              if (v.thinking && v.content) {
+                return { ...v, content: v.content.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think>[\s\S]*/g, '').trim() }
+              }
+              return v
+            })
+            return { ...m, versions: cleanedVersions }
+          }
+          return m
+        })
+        localStorage.setItem(getChatKey(worldId), JSON.stringify(cleaned))
+        return cleaned
+      })
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }
@@ -220,8 +284,21 @@ export default function WorldChat() {
         {messages.map(msg => {
           const a = msg.role === 'assistant' ? getActiveVersion(msg) : null
           const userActive = msg.role === 'user' && msg.versions?.length ? msg.versions[msg.activeVersion ?? 0] : null
-          const dc = a ? a.content : (userActive ? userActive.content : msg.content)
-          const dt = a ? a.thinking : msg.thinking, du = a ? a.usage : msg.usage
+          let rawContent = a ? a.content : (userActive ? userActive.content : msg.content)
+          let rawThinking = a ? a.thinking : msg.thinking
+          const du = a ? a.usage : msg.usage
+
+          // 如果thinking已经有内容（来自reasoning_content字段），清理content里重复的<think>标签
+          // 如果thinking没有内容，尝试从content里提取<think>标签
+          let dc: string, dt: string | undefined
+          if (rawThinking) {
+            dc = cleanContent(rawContent, true)
+            dt = rawThinking
+          } else {
+            const extracted = extractThinkFromContent(rawContent)
+            dc = extracted.clean
+            dt = extracted.thinking || undefined
+          }
           const tv = msg.versions?.length || 0, cv = msg.activeVersion ?? 0
           const ie = editingId === msg.id, iu = msg.role === 'user', name = iu ? dn.user : dn.assistant
           return (
@@ -247,7 +324,7 @@ export default function WorldChat() {
                     </div>
                   </div>
                 ) : (
-                  <div className={`text-sm leading-relaxed ${iu ? 'text-stone-600' : 'text-stone-800'}`}><ReactMarkdown components={mdComponents}>{dc}</ReactMarkdown></div>
+                  <div className={`text-sm leading-relaxed ${iu ? 'text-stone-600' : 'text-stone-800'}`}><ReactMarkdown components={mdComponents}>{iu ? dc : dc.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think>[\s\S]*/g, '').trim()}</ReactMarkdown></div>
                 )}
                 {iu && !ie && msg.content && (
                   <div className="mt-2 flex justify-end">
@@ -306,11 +383,11 @@ export default function WorldChat() {
             </div>}
           </div>
           <button onClick={toggleStream} className={`px-2 py-1.5 rounded-md text-xs font-medium transition-colors hover:bg-stone-100 ${streamOn ? 'text-stone-600' : 'text-stone-300'}`} title={streamOn ? '流式输出：开' : '流式输出：关'}>流</button>
-          <button onClick={() => { setInput(prev => (prev ? prev + '\n' : '') + '[OOC] ') }} className="px-2 py-1.5 rounded-md text-xs font-medium text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors" title="插入OOC标记">OOC</button>
+          <button onClick={() => setOocMode(!oocMode)} className={`px-2 py-1.5 rounded-md text-xs font-medium transition-colors hover:bg-stone-100 ${oocMode ? 'text-orange-500' : 'text-stone-400 hover:text-stone-600'}`} title={oocMode ? 'OOC模式：开（点击切回RP）' : 'OOC模式：关（点击切换到戏外）'}>{oocMode ? 'OOC' : 'RP'}</button>
         </div>
         <div className="max-w-2xl mx-auto flex gap-3">
           <div className="relative flex-1">
-            <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder="输入消息..." rows={1} className="w-full p-3 pr-9 text-sm rounded-lg border border-stone-200 bg-white resize-none focus:outline-none focus:border-stone-400 transition-colors overflow-y-auto" style={{ maxHeight: '124px' }} />
+            <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={oocMode ? '戏外对话模式...' : '输入消息...'} rows={1} className={`w-full p-3 pr-9 text-sm rounded-lg border resize-none focus:outline-none transition-colors overflow-y-auto ${oocMode ? 'border-orange-300 bg-orange-50/30 focus:border-orange-400' : 'border-stone-200 bg-white focus:border-stone-400'}`} style={{ maxHeight: '124px' }} />
             <button onClick={() => setExpanded(true)} className="absolute top-2 right-2 text-stone-300 hover:text-stone-500 transition-colors" title="展开编辑"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></svg></button>
           </div>
           {loading ? (
