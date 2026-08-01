@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { type Message, type MessageVersion, type TokenUsage } from '../types/chat'
 import { type AppSettings, defaultSettings } from '../types/settings'
-import { sendMessageStream } from '../stores/api'
+import { sendMessageStream, fetchModels } from '../stores/api'
 
 function getChatKey(worldId?: string) { return worldId ? `kadath-chat-${worldId}` : 'kadath-main-chat' }
 function loadMessages(worldId?: string): Message[] { const s = localStorage.getItem(getChatKey(worldId)); if (s) return JSON.parse(s); return [] }
@@ -26,6 +26,67 @@ export default function WorldChat() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
   const dn = loadDisplayNames()
+  const [quickModel, setQuickModel] = useState('')
+  const [showModelPicker, setShowModelPicker] = useState(false)
+  const [modelList, setModelList] = useState<string[]>([])
+  const [modelSearch, setModelSearch] = useState('')
+  const [modelHistory, setModelHistory] = useState<string[]>(() => {
+    const s = localStorage.getItem('kadath-model-history')
+    if (s) return JSON.parse(s)
+    return []
+  })
+  const [modelLoading, setModelLoading] = useState(false)
+  const [showThinkingPicker, setShowThinkingPicker] = useState(false)
+  const [streamOn, setStreamOn] = useState(() => {
+    const s = localStorage.getItem('kadath-settings')
+    if (s) { const p = JSON.parse(s); return p.streamEnabled !== false }
+    return true
+  })
+  const [thinkingLevel, setThinkingLevel] = useState(() => {
+    const s = localStorage.getItem('kadath-settings')
+    if (s) { const p = JSON.parse(s); return p.thinkingLevel || 'default' }
+    return 'default'
+  })
+
+  function toggleStream() {
+    const newVal = !streamOn
+    setStreamOn(newVal)
+    const s = localStorage.getItem('kadath-settings')
+    if (s) { const p = JSON.parse(s); p.streamEnabled = newVal; localStorage.setItem('kadath-settings', JSON.stringify(p)) }
+  }
+
+  function setThinking(level: string) {
+    setThinkingLevel(level)
+    setShowThinkingPicker(false)
+    const s = localStorage.getItem('kadath-settings')
+    if (s) { const p = JSON.parse(s); p.thinkingLevel = level; localStorage.setItem('kadath-settings', JSON.stringify(p)) }
+  }
+
+  function applyModelOverride(model: string) {
+    if (!model) return
+    setQuickModel(model)
+    setShowModelPicker(false)
+    setModelSearch('')
+    const s = localStorage.getItem('kadath-settings')
+    if (s) { const p = JSON.parse(s); p.chatModel.modelName = model; localStorage.setItem('kadath-settings', JSON.stringify(p)) }
+    const newHistory = [model, ...modelHistory.filter(m => m !== model)].slice(0, 5)
+    setModelHistory(newHistory)
+    localStorage.setItem('kadath-model-history', JSON.stringify(newHistory))
+  }
+
+  async function openModelPicker() {
+    setShowModelPicker(!showModelPicker)
+    setShowThinkingPicker(false)
+    setModelSearch('')
+    if (!showModelPicker && modelList.length === 0) {
+      setModelLoading(true)
+      const models = await fetchModels()
+      setModelList(models)
+      setModelLoading(false)
+    }
+  }
+
+  const thinkingLabels: Record<string, string> = { off: '关闭', light: '轻度', default: '默认', deep: '深度' }
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const expandedTextareaRef = useRef<HTMLTextAreaElement>(null)
@@ -202,7 +263,63 @@ export default function WorldChat() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="border-t border-stone-200 p-4">
+      <div className="border-t border-stone-200 p-3">
+        <div className="max-w-2xl mx-auto mb-2 flex items-center gap-1 text-xs">
+          <div className="relative">
+            <button onClick={openModelPicker} className="flex items-center gap-1 px-2 py-1.5 rounded-md text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors" title="切换模型">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+              <span className="max-w-28 truncate">{(() => { const s = localStorage.getItem('kadath-settings'); if (s) { const p = JSON.parse(s); return p.chatModel?.modelName || '未设置' } return '未设置' })()}</span>
+            </button>
+            {showModelPicker && (
+              <div className="absolute bottom-9 left-0 rounded-lg bg-white border border-stone-200 shadow-md z-20 w-72 max-h-80 flex flex-col overflow-hidden">
+                <div className="p-2 border-b border-stone-100">
+                  <input type="text" value={modelSearch} onChange={e => setModelSearch(e.target.value)} placeholder="搜索或输入模型名称..." className="w-full p-2 text-sm rounded-md border border-stone-200 focus:outline-none focus:border-stone-400" autoFocus onKeyDown={e => { if (e.key === 'Enter') applyModelOverride(modelSearch.trim()) }} />
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  {modelHistory.length > 0 && !modelSearch && (
+                    <div className="px-2 pt-2">
+                      <div className="text-xs text-stone-400 px-2 pb-1">最近使用</div>
+                      {modelHistory.map(m => (
+                        <button key={`h-${m}`} onClick={() => applyModelOverride(m)} className="w-full text-left px-2 py-1.5 text-sm text-stone-600 hover:bg-stone-50 rounded-md transition-colors truncate">{m}</button>
+                      ))}
+                    </div>
+                  )}
+                  {modelLoading ? (
+                    <div className="p-3 text-xs text-stone-400 text-center">加载模型列表...</div>
+                  ) : modelList.length > 0 ? (
+                    <div className="px-2 py-2">
+                      {!modelSearch && modelHistory.length > 0 && <div className="text-xs text-stone-400 px-2 pb-1 pt-1">全部模型</div>}
+                      {modelList.filter(m => !modelSearch || m.toLowerCase().includes(modelSearch.toLowerCase())).map(m => (
+                        <button key={m} onClick={() => applyModelOverride(m)} className="w-full text-left px-2 py-1.5 text-sm text-stone-600 hover:bg-stone-50 rounded-md transition-colors truncate">{m}</button>
+                      ))}
+                      {modelList.filter(m => !modelSearch || m.toLowerCase().includes(modelSearch.toLowerCase())).length === 0 && (
+                        <div className="px-2 py-2 text-xs text-stone-400">没有匹配的模型，按回车使用输入的名称</div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-3 text-xs text-stone-400 text-center">按回车确认输入的模型名称</div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="relative">
+            <button onClick={() => { setShowThinkingPicker(!showThinkingPicker); setShowModelPicker(false) }} className={`flex items-center gap-1 px-2 py-1.5 rounded-md hover:bg-stone-100 transition-colors ${thinkingLevel === 'off' ? 'text-stone-300' : thinkingLevel === 'light' ? 'text-amber-300' : thinkingLevel === 'deep' ? 'text-amber-500' : 'text-amber-400'}`} title="思考强度">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill={thinkingLevel === 'off' ? 'none' : 'currentColor'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5C8.46 12.26 8.93 13.02 9.09 14"/></svg>
+            </button>
+            {showThinkingPicker && (
+              <div className="absolute bottom-9 left-0 rounded-lg bg-white border border-stone-200 shadow-md z-20 overflow-hidden min-w-28">
+                {['off', 'light', 'default', 'deep'].map(l => (
+                  <button key={l} onClick={() => setThinking(l)} className={`flex items-center gap-2 w-full text-left px-3 py-2 text-sm hover:bg-stone-50 transition-colors ${thinkingLevel === l ? 'text-stone-800 font-medium bg-stone-50' : 'text-stone-500'}`}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill={l === 'off' ? 'none' : 'currentColor'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={l === 'off' ? 'text-stone-300' : l === 'light' ? 'text-amber-300' : l === 'deep' ? 'text-amber-500' : 'text-amber-400'}><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5C8.46 12.26 8.93 13.02 9.09 14"/></svg>
+                    {thinkingLabels[l]}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button onClick={toggleStream} className={`px-2 py-1.5 rounded-md text-xs font-medium transition-colors hover:bg-stone-100 ${streamOn ? 'text-stone-600' : 'text-stone-300'}`} title={streamOn ? '流式输出：开' : '流式输出：关'}>流</button>
+        </div>
         <div className="max-w-2xl mx-auto flex gap-3">
           <div className="relative flex-1">
             <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder="输入消息..." rows={1} className="w-full p-3 pr-9 text-sm rounded-lg border border-stone-200 bg-white resize-none focus:outline-none focus:border-stone-400 transition-colors overflow-y-auto" style={{ maxHeight: '124px' }} />

@@ -21,6 +21,8 @@ export interface AppSettings {
   summaryModel: SummaryModelConfig
   summaryPrompt: string
   displayNames: DisplayNames
+  thinkingLevel: 'light' | 'default' | 'deep'
+  streamEnabled: boolean
 }
 
 export const defaultSettings: AppSettings = {
@@ -40,4 +42,6 @@ export const defaultSettings: AppSettings = {
     user: 'You',
     assistant: 'Simon',
   },
+  thinkingLevel: 'default' as const,
+  streamEnabled: true,
 }
