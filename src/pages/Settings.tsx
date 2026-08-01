@@ -237,6 +237,121 @@ export default function Settings() {
       </section>
 
       <section className="space-y-3">
+        <h2 className="text-lg font-medium text-stone-700">WebDAV 云同步</h2>
+        <p className="text-xs text-stone-400">通过WebDAV将数据备份到坚果云。需要先部署Cloudflare Worker作为转发代理。</p>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-stone-500 mb-1 block">Worker 转发地址</label>
+            <input type="text" value={settings.webdav.workerUrl} onChange={e => setSettings(prev => ({ ...prev, webdav: { ...prev.webdav, workerUrl: e.target.value } }))} placeholder="https://kadath-webdav.xxx.workers.dev" className="w-full p-3 text-sm rounded-lg border border-stone-200 bg-white focus:outline-none focus:border-stone-400 transition-colors" />
+          </div>
+          <div>
+            <label className="text-xs text-stone-500 mb-1 block">WebDAV 服务器地址</label>
+            <input type="text" value={settings.webdav.serverUrl} onChange={e => setSettings(prev => ({ ...prev, webdav: { ...prev.webdav, serverUrl: e.target.value } }))} placeholder="https://dav.jianguoyun.com/dav/" className="w-full p-3 text-sm rounded-lg border border-stone-200 bg-white focus:outline-none focus:border-stone-400 transition-colors" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-stone-500 mb-1 block">用户名</label>
+              <input type="text" value={settings.webdav.username} onChange={e => setSettings(prev => ({ ...prev, webdav: { ...prev.webdav, username: e.target.value } }))} placeholder="邮箱地址" className="w-full p-3 text-sm rounded-lg border border-stone-200 bg-white focus:outline-none focus:border-stone-400 transition-colors" />
+            </div>
+            <div>
+              <label className="text-xs text-stone-500 mb-1 block">密码</label>
+              <input type="password" value={settings.webdav.password} onChange={e => setSettings(prev => ({ ...prev, webdav: { ...prev.webdav, password: e.target.value } }))} placeholder="应用密码" className="w-full p-3 text-sm rounded-lg border border-stone-200 bg-white focus:outline-none focus:border-stone-400 transition-colors" />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-stone-500 mb-1 block">备份路径</label>
+            <input type="text" value={settings.webdav.path} onChange={e => setSettings(prev => ({ ...prev, webdav: { ...prev.webdav, path: e.target.value } }))} placeholder="kadath_backups" className="w-full p-3 text-sm rounded-lg border border-stone-200 bg-white focus:outline-none focus:border-stone-400 transition-colors" />
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={async () => {
+                const { workerUrl, serverUrl, username, password, path } = settings.webdav
+                if (!workerUrl || !serverUrl || !username || !password) { alert('请填写完整的WebDAV配置'); return }
+                try {
+                  const auth = 'Basic ' + btoa(`${username}:${password}`)
+                  const testUrl = `${serverUrl}${path}/kadath-test.txt`
+                  const putRes = await fetch(`${workerUrl}?url=${encodeURIComponent(testUrl)}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': auth, 'Content-Type': 'text/plain' },
+                    body: 'kadath connection test ' + new Date().toISOString(),
+                  })
+                  if (putRes.ok || putRes.status === 201 || putRes.status === 204) {
+                    const delRes = await fetch(`${workerUrl}?url=${encodeURIComponent(testUrl)}`, {
+                      method: 'DELETE',
+                      headers: { 'Authorization': auth },
+                    })
+                    alert('✓ 连接成功！WebDAV读写正常。')
+                  } else if (putRes.status === 404) {
+                    alert('连接失败：备份目录不存在。请先在坚果云中手动创建文件夹「' + path + '」。')
+                  } else if (putRes.status === 401) {
+                    alert('连接失败：用户名或密码错误。请确认使用的是坚果云的应用密码而非登录密码。')
+                  } else {
+                    const text = await putRes.text().catch(() => '')
+                    alert(`连接失败：HTTP ${putRes.status}\n${text}`)
+                  }
+                } catch (err) { alert('连接失败：' + (err instanceof Error ? err.message : '未知错误')) }
+              }}
+              className="px-4 py-2 text-sm rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-colors"
+            >
+              测试连接
+            </button>
+            <button
+              onClick={async () => {
+                const { workerUrl, serverUrl, username, password, path } = settings.webdav
+                if (!workerUrl || !serverUrl || !username || !password) { alert('请填写完整的WebDAV配置'); return }
+                try {
+                  const targetUrl = `${serverUrl}${path}/kadath-backup.json`
+                  const response = await fetch(`${workerUrl}?url=${encodeURIComponent(targetUrl)}`, {
+                    method: 'GET',
+                    headers: { 'Authorization': 'Basic ' + btoa(`${username}:${password}`) },
+                  })
+                  if (!response.ok) { alert('恢复失败：找不到备份文件'); return }
+                  const data = await response.json()
+                  if (typeof data !== 'object') { alert('恢复失败：文件格式不正确'); return }
+                  if (!confirm(`确定要从云端恢复数据吗？这会覆盖当前所有Kadath数据。\n\n检测到 ${Object.keys(data).length} 条数据记录。`)) return
+                  Object.entries(data).forEach(([key, value]) => {
+                    if (key.startsWith('kadath')) localStorage.setItem(key, value as string)
+                  })
+                  alert('恢复成功！页面将刷新。')
+                  window.location.reload()
+                } catch (err) { alert('恢复失败：' + (err instanceof Error ? err.message : '未知错误')) }
+              }}
+              className="px-4 py-2 text-sm rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-colors"
+            >
+              恢复
+            </button>
+            <button
+              onClick={async () => {
+                const { workerUrl, serverUrl, username, password, path } = settings.webdav
+                if (!workerUrl || !serverUrl || !username || !password) { alert('请填写完整的WebDAV配置'); return }
+                try {
+                  const backupData: Record<string, string> = {}
+                  for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i)
+                    if (key && key.startsWith('kadath')) backupData[key] = localStorage.getItem(key) || ''
+                  }
+                  const targetUrl = `${serverUrl}${path}/kadath-backup.json`
+                  const response = await fetch(`${workerUrl}?url=${encodeURIComponent(targetUrl)}`, {
+                    method: 'PUT',
+                    headers: {
+                      'Authorization': 'Basic ' + btoa(`${username}:${password}`),
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(backupData, null, 2),
+                  })
+                  if (response.ok || response.status === 201 || response.status === 204) alert('✓ 备份成功！')
+                  else alert(`备份失败：HTTP ${response.status}`)
+                } catch (err) { alert('备份失败：' + (err instanceof Error ? err.message : '未知错误')) }
+              }}
+              className="px-4 py-2 text-sm rounded-lg bg-stone-800 text-stone-50 hover:bg-stone-700 transition-colors"
+            >
+              立即备份
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-3">
         <h2 className="text-lg font-medium text-stone-700">数据管理</h2>
         <p className="text-xs text-stone-400">导出所有数据（设置、世界设定、对话记录）为JSON文件，或从JSON文件导入恢复。</p>
         <div className="flex gap-3">
