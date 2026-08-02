@@ -103,11 +103,12 @@ export default function Settings() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-stone-500 mb-1 block">你的名字</label>
-              <input type="text" value={settings.displayNames.user} onChange={e => updateDisplayName('user', e.target.value)} placeholder="You" className="w-full p-3 text-sm rounded-lg border border-stone-200 bg-white focus:outline-none focus:border-stone-400 transition-colors" />
+              <input type="text" value={settings.displayNames.user} onChange={e => updateDisplayName('user', e.target.value)} placeholder="输入你的名字"
+ className="w-full p-3 text-sm rounded-lg border border-stone-200 bg-white focus:outline-none focus:border-stone-400 transition-colors" />
             </div>
             <div>
               <label className="text-xs text-stone-500 mb-1 block">AI 的名字</label>
-              <input type="text" value={settings.displayNames.assistant} onChange={e => updateDisplayName('assistant', e.target.value)} placeholder="Simon" className="w-full p-3 text-sm rounded-lg border border-stone-200 bg-white focus:outline-none focus:border-stone-400 transition-colors" />
+              <input type="text" value={settings.displayNames.assistant} onChange={e => updateDisplayName('assistant', e.target.value)} placeholder="输入AI的名字" className="w-full p-3 text-sm rounded-lg border border-stone-200 bg-white focus:outline-none focus:border-stone-400 transition-colors" />
             </div>
           </div>
         </div>

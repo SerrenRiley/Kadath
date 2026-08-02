@@ -4,12 +4,20 @@ import { type World } from '../types/world'
 import { getWorld, updateWorld } from '../stores/worlds'
 import { parseWorldSetting } from '../stores/api'
 
+const sectionIcons: Record<string, React.ReactNode> = {
+  '显示名称': <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  '世界观 / 角色 / NPC': <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
+  '规则 / 写作偏好': <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+  '已完成剧情': <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
+}
+
 function Section({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen ?? false)
+  const icon = sectionIcons[title]
   return (
     <div className="rounded-lg border border-stone-200 bg-white">
       <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between p-4 hover:bg-stone-50 transition-colors">
-        <span className="text-base font-medium text-stone-700">{title}</span>
+        <span className="flex items-center gap-2 text-base text-stone-700" style={{ fontWeight: 300 }}>{icon}{title}</span>
         <span className={`text-stone-400 transition-transform ${open ? 'rotate-90' : ''}`}>▶</span>
       </button>
       {open && <div className="border-t border-stone-100 p-4 space-y-6">{children}</div>}
@@ -182,18 +190,15 @@ export default function WorldEdit() {
 
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <Link to="/" className="text-stone-400 hover:text-stone-600 transition-colors text-sm">← 返回</Link>
-            <input type="text" value={world.name} onChange={e => setWorld({ ...world, name: e.target.value })} className="text-2xl font-light bg-transparent border-none outline-none focus:border-b focus:border-stone-300 transition-colors" style={{ minWidth: '100px', width: `${Math.max(world.name.length, 3)}ch` }} />
-          </div>
-          <p className="text-xs text-stone-400 mt-1">编辑世界设定</p>
+      <div className="space-y-3 mb-2">
+        <div className="flex items-center gap-2">
+          <Link to="/" className="text-stone-400 hover:text-stone-600 transition-colors text-sm shrink-0">←</Link>
+          <input type="text" value={world.name} onChange={e => setWorld({ ...world, name: e.target.value })} className="text-xl font-light bg-transparent border-none outline-none flex-1 min-w-0" style={{ color: 'var(--text-primary)' }} />
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setShowParse(true)} className="px-4 py-2 text-sm rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-50 transition-colors">✨ 智能填充</button>
-          <Link to={`/world/${world.id}/chat`} className="px-4 py-2 text-sm rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-colors">进入对话</Link>
-          <button onClick={handleSave} className="px-4 py-2 text-sm rounded-lg bg-stone-800 text-stone-50 hover:bg-stone-700 transition-colors">{saved ? '✓ 已保存' : '保存设定'}</button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={() => setShowParse(true)} className="px-3 py-1.5 text-xs rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-50 transition-colors">✨ 智能填充</button>
+          <Link to={`/world/${world.id}/chat`} className="px-3 py-1.5 text-xs rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-colors">进入对话</Link>
+          <button onClick={handleSave} className="px-3 py-1.5 text-xs rounded-lg bg-stone-800 text-stone-50 hover:bg-stone-700 transition-colors">{saved ? '✓ 已保存' : '保存设定'}</button>
         </div>
       </div>
 
@@ -214,7 +219,7 @@ export default function WorldEdit() {
         </div>
       )}
 
-      <Section title="📝 显示名称" defaultOpen={true}>
+      <Section title="显示名称" defaultOpen={true}>
         <div>
           <p className="text-xs text-stone-400 mb-3">在这个世界的对话中使用的名字。留空则使用全局默认。</p>
           <div className="grid grid-cols-2 gap-3">
@@ -224,7 +229,7 @@ export default function WorldEdit() {
         </div>
       </Section>
 
-      <Section title="🌍 世界观 / 角色 / NPC" defaultOpen={true}>
+      <Section title="世界观 / 角色 / NPC" defaultOpen={true}>
         <div>
           <h3 className="text-sm font-medium text-stone-600 mb-1">世界观</h3>
           <p className="text-xs text-stone-400 mb-2">这个世界的背景设定、时代、地点、规则。</p>
@@ -258,7 +263,7 @@ export default function WorldEdit() {
         </div>
       </Section>
 
-      <Section title="⚙️ 规则 / 写作偏好">
+      <Section title="规则 / 写作偏好">
         <div>
           <h3 className="text-sm font-medium text-stone-600 mb-1">特殊规则</h3>
           <p className="text-xs text-stone-400 mb-2">恐怖尺度、叙事限制、禁止事项等。</p>
@@ -276,7 +281,7 @@ export default function WorldEdit() {
         </div>
       </Section>
 
-      <Section title="📖 已完成剧情">
+      <Section title="已完成剧情">
         <div>
           <p className="text-xs text-stone-400 mb-3">已归档的章节摘要。可折叠、编辑、重新总结或查看原始对话。</p>
           {world.setting.completedChapters.length === 0 ? (
@@ -295,9 +300,6 @@ export default function WorldEdit() {
         </div>
       </Section>
 
-      <div className="flex justify-end pb-8">
-        <button onClick={handleSave} className="px-6 py-2.5 text-sm rounded-lg bg-stone-800 text-stone-50 hover:bg-stone-700 transition-colors">{saved ? '✓ 已保存' : '保存设定'}</button>
-      </div>
     </div>
   )
 }

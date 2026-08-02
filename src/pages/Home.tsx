@@ -6,8 +6,9 @@ import { type AppSettings, defaultSettings } from '../types/settings'
 
 function getAssistantName(): string {
   const saved = localStorage.getItem('kadath-settings')
-  if (saved) { const s: AppSettings = { ...defaultSettings, ...JSON.parse(saved) }; return s.displayNames?.assistant || 'Simon' }
-  return 'Simon'
+  if (saved) { const s: AppSettings = { ...defaultSettings, ...JSON.parse(saved) }; return s.displayNames?.assistant || 'AI'
+ }
+  return 'AI'
 }
 
 export default function Home() {
