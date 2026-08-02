@@ -2,6 +2,8 @@ export interface World {
   id: string
   name: string
   coverImage: string
+  pinned: boolean
+  pinnedAt: number
   createdAt: number
   updatedAt: number
   setting: {
@@ -44,6 +46,8 @@ export function createEmptyWorld(name: string): World {
     id: crypto.randomUUID(),
     name,
     coverImage: '',
+    pinned: false,
+    pinnedAt: 0,
     createdAt: Date.now(),
     updatedAt: Date.now(),
     setting: {

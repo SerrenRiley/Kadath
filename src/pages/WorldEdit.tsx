@@ -196,7 +196,7 @@ export default function WorldEdit() {
           <input type="text" value={world.name} onChange={e => setWorld({ ...world, name: e.target.value })} className="text-xl font-light bg-transparent border-none outline-none flex-1 min-w-0" style={{ color: 'var(--text-primary)' }} />
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={() => setShowParse(true)} className="px-3 py-1.5 text-xs rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-50 transition-colors">✨ 智能填充</button>
+          <button onClick={() => setShowParse(true)} className="px-3 py-1.5 text-xs rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-50 transition-colors"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>智能填充</button>
           <Link to={`/world/${world.id}/chat`} className="px-3 py-1.5 text-xs rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-colors">进入对话</Link>
           <button onClick={handleSave} className="px-3 py-1.5 text-xs rounded-lg bg-stone-800 text-stone-50 hover:bg-stone-700 transition-colors">{saved ? '✓ 已保存' : '保存设定'}</button>
         </div>
@@ -206,7 +206,8 @@ export default function WorldEdit() {
         <div className="fixed inset-0 z-50 bg-stone-900/50 flex flex-col">
           <div className="flex-1 flex flex-col m-4 sm:m-8 bg-white rounded-xl shadow-lg overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3 border-b border-stone-200">
-              <div><span className="text-sm text-stone-700 font-medium">✨ 智能填充</span><p className="text-xs text-stone-400 mt-0.5">粘贴设定文本，AI将自动解析并填入各个字段</p></div>
+              <div><span className="text-sm text-stone-700 font-medium"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>智能填充</span>
+<p className="text-xs text-stone-400 mt-0.5">粘贴设定文本，AI将自动解析并填入各个字段</p></div>
               <button onClick={() => { setShowParse(false); setParseText(''); setParseError('') }} className="text-stone-400 hover:text-stone-600 transition-colors text-sm">取消</button>
             </div>
             <textarea value={parseText} onChange={e => setParseText(e.target.value)} placeholder={"将你的世界设定文本粘贴到这里...\n\n可以是聊天记录中整理出的设定、世界观描述、角色卡、NPC信息等任何格式的文本。\nAI会自动识别并分类填入对应字段。已有内容不会被覆盖，NPC会追加。"} className="flex-1 p-5 text-sm resize-none focus:outline-none leading-relaxed" autoFocus />

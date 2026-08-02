@@ -13,6 +13,8 @@ export interface SummaryModelConfig {
 export interface DisplayNames {
   user: string
   assistant: string
+  userAvatar: string
+  assistantAvatar: string
 }
 
 export interface AppSettings {
@@ -58,6 +60,8 @@ export const defaultSettings: AppSettings = {
   displayNames: {
     user: '',
     assistant: '',
+    userAvatar: '',
+    assistantAvatar: '',
   },
   thinkingLevel: 'default' as const,
   streamEnabled: true,

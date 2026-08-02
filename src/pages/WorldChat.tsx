@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { type Message, type MessageVersion, type TokenUsage } from '../types/chat'
 import { type AppSettings, defaultSettings } from '../types/settings'
@@ -8,11 +8,14 @@ import { getWorld, updateWorld } from '../stores/worlds'
 
 function getChatKey(wid?: string) { return wid ? `kadath-chat-${wid}` : 'kadath-main-chat' }
 function loadMessages(wid?: string): Message[] { const s = localStorage.getItem(getChatKey(wid)); return s ? JSON.parse(s) : [] }
-function loadDisplayNames() { const s = localStorage.getItem('kadath-settings'); if (s) { const p: AppSettings = { ...defaultSettings, ...JSON.parse(s) }; return p.displayNames || defaultSettings.displayNames }; return defaultSettings.displayNames }
+function loadDisplayNames() { const s = localStorage.getItem('kadath-settings'); if (s) { const p: AppSettings = { ...defaultSettings, ...JSON.parse(s), displayNames: { ...defaultSettings.displayNames, ...(JSON.parse(s).displayNames || {}) } }; return p.displayNames }; return defaultSettings.displayNames }
 function formatDuration(ms: number) { return ms < 1000 ? `${ms}ms` : `${(ms/1000).toFixed(1)}s` }
 function formatDateTime(ts: number) { const d = new Date(ts); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}` }
 function getActiveVersion(msg: Message): { content: string; thinking?: string; usage?: TokenUsage } { if (msg.versions?.length && msg.activeVersion !== undefined) { const v = msg.versions[msg.activeVersion]; return { content: v.content, thinking: v.thinking, usage: v.usage } }; return { content: msg.content, thinking: msg.thinking, usage: msg.usage } }
-function Avatar({ name, isUser }: { name: string; isUser: boolean }) { return <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium shrink-0 ${isUser ? 'bg-stone-200 text-stone-600' : 'bg-stone-700 text-stone-100'}`}>{name.charAt(0).toUpperCase()}</div> }
+function Avatar({ name, isUser, avatar }: { name: string; isUser: boolean; avatar?: string }) {
+  if (avatar) return <img src={avatar} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+  return <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium shrink-0 ${isUser ? 'bg-stone-200 text-stone-600' : 'bg-stone-700 text-stone-100'}`}>{(name || '?').charAt(0).toUpperCase()}</div>
+}
 
 export default function WorldChat() {
   const { id: worldId } = useParams()
@@ -356,7 +359,7 @@ export default function WorldChat() {
           return (
             <div key={msg.id} className="group max-w-3xl mx-auto">
               <div className={`flex items-start gap-2.5 mb-3 ${iu ? 'flex-row-reverse' : 'flex-row'}`}>
-                <Avatar name={name} isUser={iu} />
+                <Avatar name={name} isUser={iu} avatar={iu ? dn.userAvatar : dn.assistantAvatar} />
                 <div className={iu ? 'text-right' : 'text-left'}>
                   <div className="text-xs text-stone-600 font-medium">{name}</div>
                   <div className="text-xs text-stone-300">{formatDateTime(msg.timestamp)}</div>
@@ -437,6 +440,7 @@ export default function WorldChat() {
           </div>
           <button onClick={toggleStream} className={`px-2 py-1.5 rounded-md text-xs font-medium transition-colors hover:bg-stone-100 ${streamOn ? 'text-stone-600' : 'text-stone-300'}`} title={streamOn ? '流式输出：开' : '流式输出：关'}>流</button>
           {worldId && <button onClick={handleRollDice} disabled={rollingDice || loading || messages.length === 0} className="px-2 py-1.5 rounded-md text-xs font-medium text-stone-400 hover:text-stone-600 hover:bg-stone-100 disabled:opacity-40 transition-colors" title="掷骰子生成剧情走向"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="3"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="16" cy="8" r="1.5" fill="currentColor"/><circle cx="8" cy="16" r="1.5" fill="currentColor"/><circle cx="16" cy="16" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg></button>}
+          {worldId && <Link to={`/world/${worldId}/edit`} className="px-2 py-1.5 rounded-md text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors" title="世界设定"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></Link>}
           {worldId && <button onClick={() => setOocMode(!oocMode)}
  className={`px-2 py-1.5 rounded-md text-xs font-medium transition-colors hover:bg-stone-100 ${oocMode ? 'text-orange-500' : 'text-stone-400 hover:text-stone-600'}`} title={oocMode ? 'OOC模式：开（点击切回RP）' : 'OOC模式：关（点击切换到戏外）'}>{oocMode ? 'OOC' : 'RP'}</button>}
         </div>

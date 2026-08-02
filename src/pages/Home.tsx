@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { type World } from '../types/world'
-import { loadWorlds, addWorld, deleteWorld } from '../stores/worlds'
+import { loadWorlds, addWorld, deleteWorld, togglePin } from '../stores/worlds'
 import { type AppSettings, defaultSettings } from '../types/settings'
 
 function getAssistantName(): string {
@@ -56,13 +56,27 @@ export default function Home() {
         <div className="text-center text-sm py-16" style={{ color: 'var(--text-tertiary)' }}>还没有创建任何世界。点击上方按钮，开始你的第一段旅程。</div>
       ) : (
         <div className="space-y-2">
-          {worlds.map(world => (
-            <div key={world.id} className="group flex items-center justify-between py-3 px-4 rounded-lg border transition-all hover:shadow-sm" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-secondary)' }}>
+          {[...worlds].sort((a, b) => {
+            if (a.pinned && !b.pinned) return -1
+            if (!a.pinned && b.pinned) return 1
+            if (a.pinned && b.pinned) return b.pinnedAt - a.pinnedAt
+            return 0
+          }).map(world => (
+            <div key={world.id} className="group flex items-center justify-between py-3 px-4 rounded-lg border transition-all hover:shadow-sm" style={{ borderColor: world.pinned ? 'var(--accent)' : 'var(--border)', backgroundColor: 'var(--bg-secondary)' }}>
               <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{world.name}</span>
-              <div className="flex gap-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                <Link to={`/world/${world.id}/chat`} className="px-2.5 py-1 rounded-md transition-colors" style={{ backgroundColor: 'var(--btn-bg)', color: 'var(--btn-text)' }}>对话</Link>
-                <Link to={`/world/${world.id}/edit`} className="px-2.5 py-1 rounded-md border transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>设定</Link>
-                <button onClick={() => handleDelete(world.id, world.name)} className="px-2.5 py-1 rounded-md border transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text-tertiary)' }}>删除</button>
+              <div className="flex items-center gap-2 text-xs">
+                <button onClick={() => { togglePin(world.id); setWorlds(loadWorlds()) }} className="transition-colors opacity-0 group-hover:opacity-100" style={{ color: world.pinned ? 'var(--accent)' : 'var(--text-muted)' }} title={world.pinned ? '取消置顶' : '置顶（最多5个）'}>
+                  {world.pinned ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3 9h-6l3-9z"/><line x1="12" y1="11" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+                  ) : (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(45deg)' }}><path d="M12 2l3 9h-6l3-9z"/><line x1="12" y1="11" x2="12" y2="22"/></svg>
+                  )}
+                </button>
+                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Link to={`/world/${world.id}/chat`} className="px-2.5 py-1 rounded-md transition-colors" style={{ backgroundColor: 'var(--btn-bg)', color: 'var(--btn-text)' }}>对话</Link>
+                  <Link to={`/world/${world.id}/edit`} className="px-2.5 py-1 rounded-md border transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>设定</Link>
+                  <button onClick={() => handleDelete(world.id, world.name)} className="px-2.5 py-1 rounded-md border transition-colors" style={{ borderColor: 'var(--border)', color: 'var(--text-tertiary)' }}>删除</button>
+                </div>
               </div>
             </div>
           ))}

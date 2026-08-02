@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { type AppSettings, defaultSettings } from '../types/settings'
 import { fetchModels } from '../stores/api'
+import AvatarUpload from '../components/AvatarUpload'
 
 const STORAGE_KEY = 'kadath-settings'
 
@@ -98,20 +99,25 @@ export default function Settings() {
       </div>
 
       <Section title="显示设置" defaultOpen={true}>
-        <div>
-          <p className="text-xs text-stone-400 mb-3">对话中显示的名字。每个小世界可在设定中单独覆盖。</p>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-stone-500 mb-1 block">你的名字</label>
-              <input type="text" value={settings.displayNames.user} onChange={e => updateDisplayName('user', e.target.value)} placeholder="输入你的名字"
- className="w-full p-3 text-sm rounded-lg border border-stone-200 bg-white focus:outline-none focus:border-stone-400 transition-colors" />
+          <div>
+          <p className="text-xs text-stone-400 mb-3">对话中显示的名字和头像。每个小世界可在设定中单独覆盖。</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-start gap-3">
+              <AvatarUpload src={settings.displayNames.userAvatar} onChange={v => setSettings(prev => ({ ...prev, displayNames: { ...prev.displayNames, userAvatar: v } }))} name={settings.displayNames.user || 'You'} />
+              <div className="flex-1">
+                <label className="text-xs text-stone-500 mb-1 block">你的名字</label>
+                <input type="text" value={settings.displayNames.user} onChange={e => updateDisplayName('user', e.target.value)} placeholder="输入你的名字" className="w-full p-3 text-sm rounded-lg border border-stone-200 bg-white focus:outline-none focus:border-stone-400 transition-colors" />
+              </div>
             </div>
-            <div>
-              <label className="text-xs text-stone-500 mb-1 block">AI 的名字</label>
-              <input type="text" value={settings.displayNames.assistant} onChange={e => updateDisplayName('assistant', e.target.value)} placeholder="输入AI的名字" className="w-full p-3 text-sm rounded-lg border border-stone-200 bg-white focus:outline-none focus:border-stone-400 transition-colors" />
+            <div className="flex items-start gap-3">
+              <AvatarUpload src={settings.displayNames.assistantAvatar} onChange={v => setSettings(prev => ({ ...prev, displayNames: { ...prev.displayNames, assistantAvatar: v } }))} name={settings.displayNames.assistant || 'AI'} />
+              <div className="flex-1">
+                <label className="text-xs text-stone-500 mb-1 block">AI 的名字</label>
+                <input type="text" value={settings.displayNames.assistant} onChange={e => updateDisplayName('assistant', e.target.value)} placeholder="输入AI的名字" className="w-full p-3 text-sm rounded-lg border border-stone-200 bg-white focus:outline-none focus:border-stone-400 transition-colors" />
+              </div>
             </div>
           </div>
-        </div>
+          </div>
       </Section>
 
       <Section title="指令设置">
