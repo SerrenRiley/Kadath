@@ -30,7 +30,7 @@ export async function sendMessageStream(
   const { apiUrl, apiKey, modelName } = settings.chatModel
   if (!apiUrl || !apiKey || !modelName) throw new Error('请先在设置页面填写完整的API配置')
 
-  const apiMessages: { role: string; content: string }[] = []
+  const apiMessages: { role: string; content: any }[] = []
   if (settings.corePrompt) apiMessages.push({ role: 'system', content: settings.corePrompt })
   apiMessages.push(...messages.map(m => {
     if (m.images && m.images.length > 0) {

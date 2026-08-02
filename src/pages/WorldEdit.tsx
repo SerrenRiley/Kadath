@@ -221,7 +221,7 @@ export default function WorldEdit() {
             if (world.setting.writingPreferences) md += `## 写作偏好\n\n${world.setting.writingPreferences}\n\n`
             if (world.setting.completedChapters.length > 0) {
               md += `## 已完成剧情\n\n`
-              world.setting.completedChapters.forEach((ch, i) => {
+              world.setting.completedChapters.forEach((ch) => {
                 md += `### ${ch.title}\n\n${ch.summary}\n\n`
                 try {
                   const msgs = JSON.parse(ch.originalMessages)
