@@ -1,1 +1,128 @@
 @import "tailwindcss";
+
+:root {
+  --bg-primary: #faf9f7;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f5f4f2;
+  --text-primary: #292524;
+  --text-secondary: #57534e;
+  --text-tertiary: #a8a29e;
+  --text-muted: #d6d3d1;
+  --border: #e7e5e4;
+  --border-light: #f5f4f2;
+  --accent: #b8860b;
+  --accent-light: #d4a843;
+  --btn-bg: #292524;
+  --btn-text: #faf9f7;
+  --btn-hover: #44403c;
+  --danger: #ef4444;
+  --danger-light: #fecaca;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #1a1918;
+  --bg-secondary: #242220;
+  --bg-tertiary: #2e2c2a;
+  --text-primary: #e7e5e4;
+  --text-secondary: #a8a29e;
+  --text-tertiary: #78716c;
+  --text-muted: #57534e;
+  --border: #3e3a37;
+  --border-light: #2e2c2a;
+  --accent: #d4a843;
+  --accent-light: #b8860b;
+  --btn-bg: #d6d3d1;
+  --btn-text: #1a1918;
+  --btn-hover: #e7e5e4;
+  --danger: #f87171;
+  --danger-light: #451a1a;
+}
+
+[data-theme="purple"] {
+  --bg-primary: #f8f7fb;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f0eef5;
+  --text-primary: #2e1f4d;
+  --text-secondary: #6b5b8a;
+  --text-tertiary: #a99ec4;
+  --text-muted: #d4cfe3;
+  --border: #e4dff0;
+  --border-light: #f0eef5;
+  --accent: #7c5cbf;
+  --accent-light: #a78bda;
+  --btn-bg: #2e1f4d;
+  --btn-text: #f8f7fb;
+  --btn-hover: #4a3570;
+  --danger: #ef4444;
+  --danger-light: #fecaca;
+}
+
+[data-theme="forest"] {
+  --bg-primary: #f7f9f5;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #eef2eb;
+  --text-primary: #2d3a28;
+  --text-secondary: #5a6b52;
+  --text-tertiary: #9aaa90;
+  --text-muted: #c5d1be;
+  --border: #dde5d8;
+  --border-light: #eef2eb;
+  --accent: #5a8a3c;
+  --accent-light: #7aad5c;
+  --btn-bg: #2d3a28;
+  --btn-text: #f7f9f5;
+  --btn-hover: #445a3c;
+  --danger: #ef4444;
+  --danger-light: #fecaca;
+}
+
+body {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  font-weight: 300 !important;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.01em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 400;
+}
+
+button, input, textarea, select {
+  font-family: inherit;
+  font-weight: 300;
+}
+
+/* 覆盖 Tailwind 的颜色类让它们跟随主题 */
+.bg-white { background-color: var(--bg-secondary) !important; }
+.bg-stone-50 { background-color: var(--bg-primary) !important; }
+.bg-stone-100 { background-color: var(--bg-tertiary) !important; }
+.bg-stone-800 { background-color: var(--btn-bg) !important; }
+.text-stone-50 { color: var(--btn-text) !important; }
+.text-stone-800 { color: var(--text-primary) !important; }
+.text-stone-700 { color: var(--text-primary) !important; }
+.text-stone-600 { color: var(--text-secondary) !important; }
+.text-stone-500 { color: var(--text-secondary) !important; }
+.text-stone-400 { color: var(--text-tertiary) !important; }
+.text-stone-300 { color: var(--text-muted) !important; }
+.border-stone-200 { border-color: var(--border) !important; }
+.border-stone-100 { border-color: var(--border-light) !important; }
+.border-stone-300 { border-color: var(--border) !important; }
+.hover\:bg-stone-700:hover { background-color: var(--btn-hover) !important; }
+.hover\:bg-stone-100:hover { background-color: var(--bg-tertiary) !important; }
+.hover\:bg-stone-50:hover { background-color: var(--bg-tertiary) !important; }
+.hover\:text-stone-600:hover { color: var(--text-primary) !important; }
+.hover\:text-stone-500:hover { color: var(--text-secondary) !important; }
+.hover\:text-stone-900:hover { color: var(--text-primary) !important; }
+.hover\:border-stone-300:hover { border-color: var(--border) !important; }
+.focus\:border-stone-400:focus { border-color: var(--text-tertiary) !important; }
+.text-red-500 { color: var(--danger) !important; }
+.hover\:text-red-500:hover { color: var(--danger) !important; }
+.hover\:text-red-400:hover { color: var(--danger) !important; }
+.border-red-200 { border-color: var(--danger-light) !important; }
+.hover\:border-red-200:hover { border-color: var(--danger) !important; }
+.hover\:border-red-300:hover { border-color: var(--danger) !important; }
+.text-red-400 { color: var(--danger) !important; }
+.bg-red-600 { background-color: var(--danger) !important; }
+.hover\:bg-red-500:hover { background-color: var(--danger) !important; }

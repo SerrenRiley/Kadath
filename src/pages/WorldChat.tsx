@@ -436,7 +436,7 @@ export default function WorldChat() {
             </div>}
           </div>
           <button onClick={toggleStream} className={`px-2 py-1.5 rounded-md text-xs font-medium transition-colors hover:bg-stone-100 ${streamOn ? 'text-stone-600' : 'text-stone-300'}`} title={streamOn ? '流式输出：开' : '流式输出：关'}>流</button>
-          {worldId && <button onClick={handleRollDice} disabled={rollingDice || loading || messages.length === 0} className="px-2 py-1.5 rounded-md text-xs font-medium text-stone-400 hover:text-stone-600 hover:bg-stone-100 disabled:opacity-40 transition-colors" title="掷骰子生成剧情走向">🎲</button>}
+          {worldId && <button onClick={handleRollDice} disabled={rollingDice || loading || messages.length === 0} className="px-2 py-1.5 rounded-md text-xs font-medium text-stone-400 hover:text-stone-600 hover:bg-stone-100 disabled:opacity-40 transition-colors" title="掷骰子生成剧情走向"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="3"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="16" cy="8" r="1.5" fill="currentColor"/><circle cx="8" cy="16" r="1.5" fill="currentColor"/><circle cx="16" cy="16" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg></button>}
           {worldId && <button onClick={() => setOocMode(!oocMode)}
  className={`px-2 py-1.5 rounded-md text-xs font-medium transition-colors hover:bg-stone-100 ${oocMode ? 'text-orange-500' : 'text-stone-400 hover:text-stone-600'}`} title={oocMode ? 'OOC模式：开（点击切回RP）' : 'OOC模式：关（点击切换到戏外）'}>{oocMode ? 'OOC' : 'RP'}</button>}
         </div>
@@ -453,19 +453,20 @@ export default function WorldChat() {
             <button onClick={handleSend} disabled={!input.trim()} className="self-end px-4 py-2 text-sm rounded-lg bg-stone-800 text-stone-50 hover:bg-stone-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">发送</button>
           )}
         </div>
-        {worldId && messages.length > 0 && <div className="max-w-2xl mx-auto mt-2 flex justify-end"><button onClick={handleSummarize} disabled={summarizing || loading} className="text-xs text-stone-400 hover:text-stone-600 disabled:opacity-40 transition-colors">{summarizing ? '正在总结...' : '📋 总结本章并归档'}</button></div>}
+        {worldId && messages.length > 0 && <div className="max-w-2xl mx-auto mt-2 flex justify-end"><button onClick={handleSummarize} disabled={summarizing || loading} className="text-xs text-stone-400 hover:text-stone-600 disabled:opacity-40 transition-colors"><span className="flex items-center gap-1">{summarizing ? '正在总结...' : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> 总结本章并归档</>}</span></button>
+</div>}
       </div>
 
       {showDice && (
         <div className="fixed inset-0 z-50 bg-stone-900/50 flex items-center justify-center p-6" onClick={() => { if (!rollingDice) { setShowDice(false); setDiceResults([]); setExpandedDice(null) } }}>
           <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-3 border-b border-stone-200">
-              <span className="text-sm text-stone-700 font-medium">🎲 剧情走向</span>
+              <span className="text-sm text-stone-700 font-medium"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-1"><rect x="2" y="2" width="20" height="20" rx="3"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="16" cy="16" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>剧情走向</span>
               {!rollingDice && <button onClick={() => { setShowDice(false); setDiceResults([]); setExpandedDice(null) }} className="text-stone-400 hover:text-stone-600 transition-colors text-sm">取消</button>}
             </div>
             <div className="p-4">
               {rollingDice ? (
-                <div className="text-center text-stone-400 text-sm py-8">🎲 正在投掷骰子...</div>
+                <div className="text-center text-stone-400 text-sm py-8">正在投掷骰子...</div>
               ) : diceResults.length > 0 ? (
                 <div className="space-y-2">
                   {diceResults.map((result, idx) => (

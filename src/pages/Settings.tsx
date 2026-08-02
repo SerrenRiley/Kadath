@@ -17,12 +17,22 @@ function saveSettings(settings: AppSettings) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
 }
 
+const sectionIcons: Record<string, React.ReactNode> = {
+  '显示设置': <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  '指令设置': <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+  '模型配置': <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>,
+  '骰子设置': <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="3"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="16" cy="16" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>,
+  '云同步': <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>,
+  '数据管理': <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>,
+}
+
 function Section({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen ?? false)
+  const icon = sectionIcons[title]
   return (
     <div className="rounded-lg border border-stone-200 bg-white">
       <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between p-4 hover:bg-stone-50 transition-colors">
-        <span className="text-base font-medium text-stone-700">{title}</span>
+        <span className="flex items-center gap-2 text-base text-stone-700" style={{ fontWeight: 300 }}>{icon}{title}</span>
         <span className={`text-stone-400 transition-transform ${open ? 'rotate-90' : ''}`}>▶</span>
       </button>
       {open && <div className="border-t border-stone-100 p-4 space-y-6">{children}</div>}
@@ -87,7 +97,7 @@ export default function Settings() {
         <button onClick={handleSave} className="px-4 py-2 text-sm rounded-lg bg-stone-800 text-stone-50 hover:bg-stone-700 transition-colors">{saved ? '✓ 已保存' : '保存设置'}</button>
       </div>
 
-      <Section title="📝 显示设置" defaultOpen={true}>
+      <Section title="显示设置" defaultOpen={true}>
         <div>
           <p className="text-xs text-stone-400 mb-3">对话中显示的名字。每个小世界可在设定中单独覆盖。</p>
           <div className="grid grid-cols-2 gap-3">
@@ -103,7 +113,7 @@ export default function Settings() {
         </div>
       </Section>
 
-      <Section title="💬 指令设置">
+      <Section title="指令设置">
         <div>
           <h3 className="text-sm font-medium text-stone-600 mb-1">核心人格 Prompt</h3>
           <p className="text-xs text-stone-400 mb-2">全局生效，所有世界共享。</p>
@@ -121,7 +131,7 @@ export default function Settings() {
         </div>
       </Section>
 
-      <Section title="🤖 模型配置">
+      <Section title="模型配置">
         <div>
           <h3 className="text-sm font-medium text-stone-600 mb-1">聊天模型</h3>
           <p className="text-xs text-stone-400 mb-2">用于RP对话的主力模型。</p>
@@ -148,7 +158,7 @@ export default function Settings() {
         </div>
       </Section>
 
-      <Section title="🎲 骰子设置">
+      <Section title="骰子设置">
         <div>
           <p className="text-xs text-stone-400 mb-3">在小世界对话中掷骰子，AI会根据上下文生成多个剧情走向供你选择。</p>
           <div className="space-y-3">
@@ -172,7 +182,7 @@ export default function Settings() {
         </div>
       </Section>
 
-      <Section title="☁️ 云同步">
+      <Section title="云同步">
         <div>
           <h3 className="text-sm font-medium text-stone-600 mb-1">Supabase 云同步</h3>
           <p className="text-xs text-stone-400 mb-2">国内直连，无需梯子。</p>
@@ -209,7 +219,7 @@ export default function Settings() {
         </div>
       </Section>
 
-      <Section title="🗂️ 数据管理">
+      <Section title="数据管理">
         <div>
           <p className="text-xs text-stone-400 mb-3">导出所有数据为JSON文件，或从JSON文件导入恢复。</p>
           <div className="flex gap-3">
