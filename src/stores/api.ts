@@ -32,7 +32,16 @@ export async function sendMessageStream(
 
   const apiMessages: { role: string; content: string }[] = []
   if (settings.corePrompt) apiMessages.push({ role: 'system', content: settings.corePrompt })
-  apiMessages.push(...messages.map(m => ({ role: m.role, content: m.content })))
+  apiMessages.push(...messages.map(m => {
+    if (m.images && m.images.length > 0) {
+      const parts: any[] = [{ type: 'text', text: m.content || '' }]
+      m.images.forEach(img => {
+        parts.push({ type: 'image_url', image_url: { url: img.data } })
+      })
+      return { role: m.role, content: parts }
+    }
+    return { role: m.role, content: m.content }
+  }))
 
   const startTime = Date.now()
   const thinkingParams = getThinkingParams(settings.thinkingLevel)

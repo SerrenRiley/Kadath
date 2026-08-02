@@ -196,7 +196,62 @@ export default function WorldEdit() {
           <input type="text" value={world.name} onChange={e => setWorld({ ...world, name: e.target.value })} className="text-xl font-light bg-transparent border-none outline-none flex-1 min-w-0" style={{ color: 'var(--text-primary)' }} />
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={() => setShowParse(true)} className="px-3 py-1.5 text-xs rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-50 transition-colors"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>智能填充</button>
+          <button onClick={() => {
+            if (!world) return
+            let md = `# ${world.name}\n\n`
+            if (world.setting.worldview) md += `## 世界观\n\n${world.setting.worldview}\n\n`
+            if (world.setting.myCharacter.name) {
+              md += `## 我的角色：${world.setting.myCharacter.name}\n\n`
+              if (world.setting.myCharacter.appearance) md += `**外貌**：${world.setting.myCharacter.appearance}\n\n`
+              if (world.setting.myCharacter.personality) md += `**性格**：${world.setting.myCharacter.personality}\n\n`
+              if (world.setting.myCharacter.abilities) md += `**能力**：${world.setting.myCharacter.abilities}\n\n`
+              if (world.setting.myCharacter.relationships) md += `**关系**：${world.setting.myCharacter.relationships}\n\n`
+            }
+            if (world.setting.npcs.length > 0) {
+              md += `## NPC\n\n`
+              world.setting.npcs.forEach(npc => {
+                md += `### ${npc.name || '未命名'}\n\n`
+                if (npc.appearance) md += `**外貌**：${npc.appearance}\n\n`
+                if (npc.personality) md += `**性格**：${npc.personality}\n\n`
+                if (npc.relationships) md += `**关系**：${npc.relationships}\n\n`
+                if (npc.notes) md += `**备注**：${npc.notes}\n\n`
+              })
+            }
+            if (world.setting.specialRules) md += `## 特殊规则\n\n${world.setting.specialRules}\n\n`
+            if (world.setting.writingPreferences) md += `## 写作偏好\n\n${world.setting.writingPreferences}\n\n`
+            if (world.setting.completedChapters.length > 0) {
+              md += `## 已完成剧情\n\n`
+              world.setting.completedChapters.forEach((ch, i) => {
+                md += `### ${ch.title}\n\n${ch.summary}\n\n`
+                try {
+                  const msgs = JSON.parse(ch.originalMessages)
+                  md += `<details><summary>查看原文</summary>\n\n`
+                  msgs.forEach((m: any) => { md += `**${m.role === 'user' ? (world.displayNames.user || 'You') : (world.displayNames.assistant || 'AI')}**\n\n${m.content}\n\n---\n\n` })
+                  md += `</details>\n\n`
+                } catch {}
+              })
+            }
+            const chatKey = `kadath-chat-${world.id}`
+            const chatData = localStorage.getItem(chatKey)
+            if (chatData) {
+              try {
+                const msgs = JSON.parse(chatData)
+                if (msgs.length > 0) {
+                  md += `## 当前对话\n\n`
+                  msgs.forEach((m: any) => { md += `**${m.role === 'user' ? (world.displayNames.user || 'You') : (world.displayNames.assistant || 'AI')}**\n\n${m.content}\n\n---\n\n` })
+                }
+              } catch {}
+            }
+            const blob = new Blob([md], { type: 'text/markdown' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url; a.download = `${world.name}.md`; a.click()
+            URL.revokeObjectURL(url)
+          }} className="px-3 py-1.5 text-xs rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-50 transition-colors">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>导出
+          </button>
+          <button onClick={() => setShowParse(true)} className="px-3 py-1.5 text-xs rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-50 transition-colors">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>智能填充</button>
           <Link to={`/world/${world.id}/chat`} className="px-3 py-1.5 text-xs rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-colors">进入对话</Link>
           <button onClick={handleSave} className="px-3 py-1.5 text-xs rounded-lg bg-stone-800 text-stone-50 hover:bg-stone-700 transition-colors">{saved ? '✓ 已保存' : '保存设定'}</button>
         </div>

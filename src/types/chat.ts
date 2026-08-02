@@ -12,10 +12,16 @@ export interface MessageVersion {
   usage?: TokenUsage
 }
 
+export interface MessageImage {
+  data: string
+  type: string
+}
+
 export interface Message {
   id: string
   role: 'system' | 'user' | 'assistant'
   content: string
+  images?: MessageImage[]
   thinking?: string
   usage?: TokenUsage
   versions?: MessageVersion[]

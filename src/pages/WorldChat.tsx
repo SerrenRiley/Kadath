@@ -34,13 +34,16 @@ export default function WorldChat() {
   const [summaryContent, setSummaryContent] = useState('')
   const [summarizing, setSummarizing] = useState(false)
   const [oocMode, setOocMode] = useState(false)
+  const [pendingImages, setPendingImages] = useState<{ data: string; type: string }[]>([])
+  const [viewingImage, setViewingImage] = useState<string | null>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
   const [diceResults, setDiceResults] = useState<string[]>([])
   const [showDice, setShowDice] = useState(false)
   const [rollingDice, setRollingDice] = useState(false)
   const [expandedDice, setExpandedDice] = useState<number | null>(null)
   const [chapters, setChapters] = useState<{ id: string; title: string; summary: string }[]>([])
   const [viewingChapter, setViewingChapter] = useState<{ title: string; summary: string } | null>(null)
-  const [quickModel, setQuickModel] = useState('')
+  const [, setQuickModel] = useState('')
   const [showModelPicker, setShowModelPicker] = useState(false)
   const [modelList, setModelList] = useState<string[]>([])
   const [modelSearch, setModelSearch] = useState('')
@@ -223,7 +226,8 @@ export default function WorldChat() {
 
   async function handleSend() {
     const t = input.trim(); if (!t || loading) return
-    const um: Message = { id: crypto.randomUUID(), role: 'user', content: t, timestamp: Date.now() }
+    const um: Message = { id: crypto.randomUUID(), role: 'user', content: t, timestamp: Date.now(), images: pendingImages.length > 0 ? [...pendingImages] : undefined }
+    setPendingImages([])
     const aid = crypto.randomUUID(); const am: Message = { id: aid, role: 'assistant', content: '', thinking: '', timestamp: Date.now() }
     setMessages(p => [...p, um, am]); setInput(''); setExpanded(false); setLoading(true); setError(''); isStreamingRef.current = true; setThinkingOpen(p => ({ ...p, [aid]: true }))
     try {
@@ -275,6 +279,22 @@ export default function WorldChat() {
   }
 
   function handleKeyDown(e: React.KeyboardEvent) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }
+  function handleImageSelect(files: FileList | null) {
+    if (!files) return
+    Array.from(files).forEach(file => {
+      if (!file.type.startsWith('image/')) return
+      const reader = new FileReader()
+      reader.onload = () => {
+        setPendingImages(prev => [...prev, { data: reader.result as string, type: file.type }])
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  function removePendingImage(index: number) {
+    setPendingImages(prev => prev.filter((_, i) => i !== index))
+  }
+
   async function handleRollDice() {
     if (messages.length === 0 || rollingDice) return
     setRollingDice(true); setShowDice(true); setDiceResults([]); setExpandedDice(null)
@@ -378,8 +398,8 @@ export default function WorldChat() {
                       <button onClick={() => submitEdit(msg.id)} disabled={!editText.trim() || loading} className="px-3 py-1.5 text-xs rounded-md bg-stone-800 text-stone-50 hover:bg-stone-700 disabled:opacity-40 transition-colors">保存并重新生成</button>
                     </div>
                   </div>
-                ) : (
-                  <div className={`text-sm leading-relaxed ${iu ? 'text-stone-600' : 'text-stone-800'}`}><ReactMarkdown components={mdComponents}>{iu ? dc : dc.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think>[\s\S]*/g, '').trim()}</ReactMarkdown></div>
+                ) : (               
+                  <div className={`text-sm leading-relaxed ${iu ? 'text-stone-600' : 'text-stone-800'}`}>{msg.images && msg.images.length > 0 && <div className="flex gap-2 mb-2 flex-wrap">{msg.images.map((img, i) => <img key={i} src={img.data} alt="" className="max-w-48 max-h-48 rounded-lg object-cover border border-stone-200 cursor-pointer" onClick={() => setViewingImage(img.data)} />)}</div>}<ReactMarkdown components={mdComponents}>{iu ? dc : dc.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think>[\s\S]*/g, '').trim()}</ReactMarkdown></div>
                 )}
                 {iu && !ie && msg.content && (
                   <div className="mt-2 flex justify-end">
@@ -391,7 +411,7 @@ export default function WorldChat() {
                     </div>
                   </div>
                 )}
-                {!iu && dc && (
+                {!iu && (
                   <div className="mt-2 flex items-center justify-between w-full">
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <CopyBtn id={msg.id} content={dc} />
@@ -399,8 +419,9 @@ export default function WorldChat() {
                       {tv > 1 && <div className="flex items-center gap-1 text-xs text-stone-400"><button onClick={() => switchVersion(msg.id, -1)} disabled={cv === 0} className="hover:text-stone-600 disabled:opacity-30 transition-colors">‹</button><span>{cv+1}/{tv}</span><button onClick={() => switchVersion(msg.id, 1)} disabled={cv === tv-1} className="hover:text-stone-600 disabled:opacity-30 transition-colors">›</button></div>}
                       <button onClick={() => handleDelete(msg.id)} className="text-stone-300 hover:text-red-400 transition-colors" title="删除"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
                     </div>
-                    {du && <div className="relative"><button onClick={() => toggleUsage(msg.id)} className="text-xs text-stone-300 hover:text-stone-500 transition-colors">{du.totalTokens} tokens</button>
-                      {usageOpen[msg.id] && <div className="absolute bottom-6 right-0 p-2.5 rounded-lg bg-white border border-stone-200 shadow-sm text-xs text-stone-500 space-y-1 z-10 whitespace-nowrap"><div>楼层：#{floor}</div><div>输入：{du.promptTokens}
+                    { <div
+ className="relative"><button onClick={() => toggleUsage(msg.id)} className="text-xs text-stone-300 hover:text-stone-500 transition-colors">{du ? du.totalTokens + ' tokens' : '#' + floor}</button>
+                      {usageOpen[msg.id] && du && <div className="absolute bottom-6 right-0 p-2.5 rounded-lg bg-white border border-stone-200 shadow-sm text-xs text-stone-500 space-y-1 z-10 whitespace-nowrap"><div>楼层：#{floor}</div><div>输入：{du.promptTokens}
  tokens</div><div>输出：{du.completionTokens} tokens</div><div>用时：{formatDuration(du.duration)}</div></div>}</div>}
                   </div>
                 )}
@@ -444,22 +465,37 @@ export default function WorldChat() {
           {worldId && <button onClick={() => setOocMode(!oocMode)}
  className={`px-2 py-1.5 rounded-md text-xs font-medium transition-colors hover:bg-stone-100 ${oocMode ? 'text-orange-500' : 'text-stone-400 hover:text-stone-600'}`} title={oocMode ? 'OOC模式：开（点击切回RP）' : 'OOC模式：关（点击切换到戏外）'}>{oocMode ? 'OOC' : 'RP'}</button>}
         </div>
-        <div className="max-w-2xl mx-auto flex gap-3">
+        <div className="max-w-2xl mx-auto flex items-center gap-3">
+                    {pendingImages.length > 0 && <div className="flex gap-2 mb-2 flex-wrap">{pendingImages.map((img, i) => <div key={i} className="relative group"><img src={img.data} alt="" className="w-16 h-16 rounded-lg object-cover border border-stone-200" /><button onClick={() => removePendingImage(i)} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity" style={{ backgroundColor: 'var(--btn-bg)', color: 'var(--btn-text)' }}>×</button></div>)}</div>}
           <div className="relative flex-1">
-            <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={oocMode ? '戏外对话模式...' : '输入消息...'} rows={1} className={`w-full p-3 pr-9 text-sm rounded-lg border resize-none focus:outline-none transition-colors overflow-y-auto ${oocMode ? 'border-orange-300 bg-orange-50/30 focus:border-orange-400' : 'border-stone-200 bg-white focus:border-stone-400'}`} style={{ maxHeight: '124px' }} />
+                        <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => { handleImageSelect(e.target.files); e.target.value = '' }} />
+            <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={oocMode ? '戏外对话模式...' : '输入消息...'} rows={1} className={`w-full pl-9 py-3 pr-9 text-sm rounded-lg border resize-none focus:outline-none transition-colors overflow-y-auto ${oocMode ? 'border-orange-300 bg-orange-50/30 focus:border-orange-400' : 'border-stone-200 bg-white focus:border-stone-400'}`} style={{ maxHeight: '124px' }} />
+            <button onClick={() => imageInputRef.current?.click()} className="absolute top-3.5 left-2.5 text-stone-300 hover:text-stone-500 transition-colors" title="上传图片"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></button>
             <button onClick={() => setExpanded(true)} className="absolute top-2 right-2 text-stone-300 hover:text-stone-500 transition-colors" title="展开编辑"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></svg></button>
           </div>
           {loading ? (
-            <button onClick={handleStop} className="self-end px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-500 transition-colors" title="停止生成">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1" /></svg>
+            <button onClick={handleStop} className="mt-[-6px] w-9 h-9 shrink-0
+ rounded-full flex items-center justify-center transition-colors" style={{ border: '2px solid var(--danger)', color: 'var(--danger)' }} title="停止生成">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
             </button>
           ) : (
-            <button onClick={handleSend} disabled={!input.trim()} className="self-end px-4 py-2 text-sm rounded-lg bg-stone-800 text-stone-50 hover:bg-stone-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">发送</button>
+            <button onClick={handleSend} disabled={!input.trim()} className="mt-[-6px] w-9 h-9 shrink-0
+ rounded-full flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition-colors" style={{ border: '2px solid var(--btn-bg)', color: 'var(--btn-bg)' }} title="发送">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+            </button>
           )}
         </div>
+                {worldId && messages.length > 0 && <div className="max-w-2xl mx-auto mt-1 flex justify-end"><button onClick={() => { const d = loadDisplayNames(); let md = '# 对话记录\n\n'; messages.forEach(m => { md += `**${m.role === 'user' ? (d.user || 'You') : (d.assistant || 'AI')}**\n\n${m.content}\n\n---\n\n` }); const b = new Blob([md], { type: 'text/markdown' }); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = `对话记录-${new Date().toISOString().slice(0,10)}.md`; a.click(); URL.revokeObjectURL(u) }} className="text-xs text-stone-400 hover:text-stone-600 transition-colors"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-0.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>导出对话</button></div>}
+
         {worldId && messages.length > 0 && <div className="max-w-2xl mx-auto mt-2 flex justify-end"><button onClick={handleSummarize} disabled={summarizing || loading} className="text-xs text-stone-400 hover:text-stone-600 disabled:opacity-40 transition-colors"><span className="flex items-center gap-1">{summarizing ? '正在总结...' : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> 总结本章并归档</>}</span></button>
 </div>}
       </div>
+
+      {viewingImage && (
+        <div className="fixed inset-0 z-50 bg-stone-900/80 flex items-center justify-center p-4" onClick={() => setViewingImage(null)}>
+          <img src={viewingImage} alt="" className="max-w-full max-h-full object-contain rounded-lg" onClick={e => e.stopPropagation()} />
+        </div>
+      )}
 
       {showDice && (
         <div className="fixed inset-0 z-50 bg-stone-900/50 flex items-center justify-center p-6" onClick={() => { if (!rollingDice) { setShowDice(false); setDiceResults([]); setExpandedDice(null) } }}>
