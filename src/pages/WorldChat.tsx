@@ -403,7 +403,7 @@ export default function WorldChat() {
                 )}
                 {iu && !ie && msg.content && (
                   <div className="mt-2 flex justify-end">
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity">
                       <CopyBtn id={msg.id} content={msg.content} />
                       <button onClick={() => startEdit(msg)} className="text-stone-300 hover:text-stone-500 transition-colors" title="编辑"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg></button>
                       <button onClick={() => handleDelete(msg.id)} className="text-stone-300 hover:text-red-400 transition-colors" title="删除"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
@@ -413,7 +413,7 @@ export default function WorldChat() {
                 )}
                 {!iu && (
                   <div className="mt-2 flex items-center justify-between w-full">
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity">
                       <CopyBtn id={msg.id} content={dc} />
                       <button onClick={() => handleRegenerate(msg.id)} disabled={loading} className="text-stone-300 hover:text-stone-500 disabled:opacity-40 transition-colors" title="重新生成"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg></button>
                       {tv > 1 && <div className="flex items-center gap-1 text-xs text-stone-400"><button onClick={() => switchVersion(msg.id, -1)} disabled={cv === 0} className="hover:text-stone-600 disabled:opacity-30 transition-colors">‹</button><span>{cv+1}/{tv}</span><button onClick={() => switchVersion(msg.id, 1)} disabled={cv === tv-1} className="hover:text-stone-600 disabled:opacity-30 transition-colors">›</button></div>}
@@ -466,7 +466,7 @@ export default function WorldChat() {
  className={`px-2 py-1.5 rounded-md text-xs font-medium transition-colors hover:bg-stone-100 ${oocMode ? 'text-orange-500' : 'text-stone-400 hover:text-stone-600'}`} title={oocMode ? 'OOC模式：开（点击切回RP）' : 'OOC模式：关（点击切换到戏外）'}>{oocMode ? 'OOC' : 'RP'}</button>}
         </div>
         <div className="max-w-2xl mx-auto flex items-center gap-3">
-                    {pendingImages.length > 0 && <div className="flex gap-2 mb-2 flex-wrap">{pendingImages.map((img, i) => <div key={i} className="relative group"><img src={img.data} alt="" className="w-16 h-16 rounded-lg object-cover border border-stone-200" /><button onClick={() => removePendingImage(i)} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity" style={{ backgroundColor: 'var(--btn-bg)', color: 'var(--btn-text)' }}>×</button></div>)}</div>}
+                    {pendingImages.length > 0 && <div className="flex gap-2 mb-2 flex-wrap">{pendingImages.map((img, i) => <div key={i} className="relative group"><img src={img.data} alt="" className="w-16 h-16 rounded-lg object-cover border border-stone-200" /><button onClick={() => removePendingImage(i)} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-xs opacity-60 hover:opacity-100 transition-opacity" style={{ backgroundColor: 'var(--btn-bg)', color: 'var(--btn-text)' }}>×</button></div>)}</div>}
           <div className="relative flex-1">
                         <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => { handleImageSelect(e.target.files); e.target.value = '' }} />
             <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={oocMode ? '戏外对话模式...' : '输入消息...'} rows={1} className={`w-full pl-9 py-3 pr-9 text-sm rounded-lg border resize-none focus:outline-none transition-colors overflow-y-auto ${oocMode ? 'border-orange-300 bg-orange-50/30 focus:border-orange-400' : 'border-stone-200 bg-white focus:border-stone-400'}`} style={{ maxHeight: '124px' }} />
