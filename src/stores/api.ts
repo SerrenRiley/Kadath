@@ -145,7 +145,7 @@ export async function rollDice(messages: Message[], count: number, modelOverride
   const modelName = modelOverride || settings.dice.modelName || settings.chatModel.modelName
   if (!apiUrl || !apiKey || !modelName) throw new Error('请先配置API和骰子模型')
 
-  const apiMessages: { role: string; content: string }[] = []
+  const apiMessages: { role: string; content: any }[] = []
   if (settings.corePrompt) apiMessages.push({ role: 'system', content: settings.corePrompt })
   apiMessages.push(...messages.map(m => ({ role: m.role, content: m.content })))
   const dicePrompt = settings.dice?.prompt || `根据以上对话的上下文和角色设定，以旁白/导演的视角，生成${count}个可能的剧情走向。每个走向用一行简短的话描述接下来可能发生的事件或场景变化（不超过30字）。不要写角色的对话和心理活动，只描述将要发生的事件。格式要求：每行一个走向，用数字编号，不要其他多余内容。例如：\n1. 远处突然传来一声巨响\n2. 一个陌生人推门走了进来`
