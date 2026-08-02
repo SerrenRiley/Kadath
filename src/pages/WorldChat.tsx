@@ -116,8 +116,20 @@ export default function WorldChat() {
         return prev.filter(m => m.id !== msgId)
       })
     } else {
-      if (!confirm('确定要删除这条回复吗？')) return
-      setMessages(prev => prev.filter(m => m.id !== msgId))
+      if (msg.versions && msg.versions.length > 1) {
+        if (!confirm('确定要删除当前版本吗？')) return
+        setMessages(prev => prev.map(m => {
+          if (m.id !== msgId || !m.versions) return m
+          const currentIdx = m.activeVersion ?? 0
+          const newVersions = m.versions.filter((_, i) => i !== currentIdx)
+          const newActive = Math.min(currentIdx, newVersions.length - 1)
+          const av = newVersions[newActive]
+          return { ...m, content: av.content, thinking: av.thinking, usage: av.usage, versions: newVersions, activeVersion: newActive }
+        }))
+      } else {
+        if (!confirm('确定要删除这条回复吗？')) return
+        setMessages(prev => prev.filter(m => m.id !== msgId))
+      }
     }
   }
 
