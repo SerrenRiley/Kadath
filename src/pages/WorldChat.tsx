@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { type Message, type MessageVersion, type TokenUsage } from '../types/chat'
 import { type AppSettings, defaultSettings } from '../types/settings'
-import { sendMessageStream, fetchModels, sendSummary, rollDice } from '../stores/api'
+import { sendMessageStream, fetchModels, sendSummary, rollDice, compressChat } from '../stores/api'
 import { getWorld, updateWorld } from '../stores/worlds'
 
 function getChatKey(wid?: string) { return wid ? `kadath-chat-${wid}` : 'kadath-main-chat' }
@@ -322,7 +322,7 @@ export default function WorldChat() {
     try {
       const dn2 = loadDisplayNames()
       const chatContent = messages.map(m => `${m.role === 'user' ? (dn2.user || 'You') : (dn2.assistant || 'AI')}: ${m.content}`).join('\n\n')
-      const summary = await sendSummary(chatContent)
+      const summary = await compressChat(chatContent)
       const existingSummary = localStorage.getItem('kadath-main-summary') || ''
       const newSummary = existingSummary ? existingSummary + '\n\n---\n\n' + summary : summary
       localStorage.setItem('kadath-main-summary', newSummary)

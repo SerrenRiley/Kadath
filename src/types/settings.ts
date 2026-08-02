@@ -26,6 +26,7 @@ export interface AppSettings {
   thinkingLevel: 'light' | 'default' | 'deep'
   streamEnabled: boolean
   oocPrompt: string
+  compressPrompt: string
   webdav: {
     workerUrl: string
     serverUrl: string
@@ -65,6 +66,7 @@ export const defaultSettings: AppSettings = {
   },
   thinkingLevel: 'default' as const,
   streamEnabled: true,
+  compressPrompt: '请将以下对话内容压缩为简洁的摘要。保留重要的信息、共识、决定和情感要点。摘要将用于帮助AI在后续对话中保持记忆连续性。不需要逐条复述，只需要抓住核心内容。',
   oocPrompt: '用户接下来的消息是戏外对话（OOC）。请暂时退出当前世界的角色扮演，以你的真实身份回应。你们可能在讨论剧情走向、修改设定、闲聊或提出其他非RP内容。保持核心人格Prompt中设定的人格和语气，只是不再扮演当前世界的角色。',
   webdav: {
     workerUrl: '',

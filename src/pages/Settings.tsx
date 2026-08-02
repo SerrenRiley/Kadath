@@ -132,6 +132,11 @@ export default function Settings() {
           <textarea value={settings.oocPrompt} onChange={e => setSettings(prev => ({ ...prev, oocPrompt: e.target.value }))} placeholder="OOC模式的系统提示..." className="w-full h-32 p-4 text-sm rounded-lg border border-stone-200 bg-white resize-y focus:outline-none focus:border-stone-400 transition-colors" />
         </div>
         <div>
+          <h3 className="text-sm font-medium text-stone-600 mb-1">主对话压缩指令</h3>
+          <p className="text-xs text-stone-400 mb-2">主对话压缩上下文时使用的指令。</p>
+          <textarea value={settings.compressPrompt} onChange={e => setSettings(prev => ({ ...prev, compressPrompt: e.target.value }))} placeholder="留空使用默认指令..." className="w-full h-24 p-4 text-sm rounded-lg border border-stone-200 bg-white resize-y focus:outline-none focus:border-stone-400 transition-colors" />
+        </div>
+        <div>
           <h3 className="text-sm font-medium text-stone-600 mb-1">总结指令</h3>
           <p className="text-xs text-stone-400 mb-2">全局默认的章节总结prompt。每个世界可单独覆盖。</p>
           <textarea value={settings.summaryPrompt} onChange={e => setSettings(prev => ({ ...prev, summaryPrompt: e.target.value }))} placeholder="总结指令..." className="w-full h-48 p-4 text-sm rounded-lg border border-stone-200 bg-white resize-y focus:outline-none focus:border-stone-400 transition-colors" />

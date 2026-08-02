@@ -227,3 +227,24 @@ JSON格式如下（字段值为空字符串表示原文中未提及，不要编�
 
   return JSON.parse(content)
 }
+
+export async function compressChat(content: string): Promise<string> {
+  const settings = getSettings()
+  if (!settings) throw new Error('请先配置API信息')
+
+  const apiUrl = settings.summaryModel.apiUrl || settings.chatModel.apiUrl
+  const apiKey = settings.summaryModel.apiKey || settings.chatModel.apiKey
+  const modelName = settings.summaryModel.modelName || settings.chatModel.modelName
+  if (!apiUrl || !apiKey || !modelName) throw new Error('请配置总结模型信息')
+
+  const prompt = settings.compressPrompt || '请将以下对话内容压缩为简洁的摘要。保留重要的信息、共识、决定和情感要点。'
+
+  const response = await fetch(`${apiUrl}/chat/completions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body: JSON.stringify({ model: modelName, messages: [{ role: 'system', content: prompt }, { role: 'user', content }] }),
+  })
+  if (!response.ok) throw new Error(`压缩失败: ${response.status}`)
+  const data = await response.json()
+  return data.choices[0].message.content
+}
