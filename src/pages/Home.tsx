@@ -65,7 +65,7 @@ export default function Home() {
             <div key={world.id} className="group flex items-center justify-between py-3 px-4 rounded-lg border transition-all hover:shadow-sm" style={{ borderColor: world.pinned ? 'var(--accent)' : 'var(--border)', backgroundColor: 'var(--bg-secondary)' }}>
               <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{world.name}</span>
               <div className="flex items-center gap-2 text-xs">
-                <button onClick={() => { togglePin(world.id); setWorlds(loadWorlds()) }} className="transition-colors opacity-0 group-hover:opacity-100" style={{ color: world.pinned ? 'var(--accent)' : 'var(--text-muted)' }} title={world.pinned ? '取消置顶' : '置顶（最多5个）'}>
+                <button onClick={() => { togglePin(world.id); setWorlds(loadWorlds()) }} className="transition-colors opacity-60 hover:opacity-100" style={{ color: world.pinned ? 'var(--accent)' : 'var(--text-muted)' }} title={world.pinned ? '取消置顶' : '置顶（最多5个）'}>
                   {world.pinned ? (
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3 9h-6l3-9z"/><line x1="12" y1="11" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
                   ) : (
