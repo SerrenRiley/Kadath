@@ -126,3 +126,95 @@ export async function sendSummary(content: string): Promise<string> {
   const data = await response.json()
   return data.choices[0].message.content
 }
+
+export async function rollDice(messages: Message[], count: number, modelOverride?: string): Promise<string[]> {
+  const settings = getSettings()
+  if (!settings) throw new Error('请先配置API信息')
+
+  const apiUrl = settings.chatModel.apiUrl
+  const apiKey = settings.chatModel.apiKey
+  const modelName = modelOverride || settings.dice.modelName || settings.chatModel.modelName
+  if (!apiUrl || !apiKey || !modelName) throw new Error('请先配置API和骰子模型')
+
+  const apiMessages: { role: string; content: string }[] = []
+  if (settings.corePrompt) apiMessages.push({ role: 'system', content: settings.corePrompt })
+  apiMessages.push(...messages.map(m => ({ role: m.role, content: m.content })))
+  const dicePrompt = settings.dice?.prompt || `根据以上对话的上下文和角色设定，以旁白/导演的视角，生成${count}个可能的剧情走向。每个走向用一行简短的话描述接下来可能发生的事件或场景变化（不超过30字）。不要写角色的对话和心理活动，只描述将要发生的事件。格式要求：每行一个走向，用数字编号，不要其他多余内容。例如：\n1. 远处突然传来一声巨响\n2. 一个陌生人推门走了进来`
+  apiMessages.push({
+    role: 'system',
+    content: dicePrompt.replace('{count}', String(count)),
+  })
+
+  const response = await fetch(`${apiUrl}/chat/completions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body: JSON.stringify({ model: modelName, messages: apiMessages, max_tokens: 200 }),
+  })
+
+  if (!response.ok) throw new Error(`骰子请求失败: ${response.status}`)
+  const data = await response.json()
+  const content = data.choices[0].message.content as string
+
+  return content.split('\n').map(line => line.replace(/^\d+[\.\、\)\s]+/, '').trim()).filter(line => line.length > 0).slice(0, count)
+}
+
+export async function parseWorldSetting(text: string): Promise<Record<string, any>> {
+  const settings = getSettings()
+  if (!settings) throw new Error('请先配置API信息')
+
+  const apiUrl = settings.summaryModel.apiUrl || settings.chatModel.apiUrl
+  const apiKey = settings.summaryModel.apiKey || settings.chatModel.apiKey
+  const modelName = settings.summaryModel.modelName || settings.chatModel.modelName
+  if (!apiUrl || !apiKey || !modelName) throw new Error('请配置模型信息')
+
+  const response = await fetch(`${apiUrl}/chat/completions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: modelName,
+      messages: [
+        {
+          role: 'system',
+          content: `你是一个设定解析助手。用户会给你一大段RP世界设定文本，请从中提取信息并返回一个JSON对象。只返回JSON，不要其他内容。
+
+JSON格式如下（字段值为空字符串表示原文中未提及，不要编造内容）：
+{
+  "worldview": "世界观/背景设定",
+  "myCharacter": {
+    "name": "用户扮演的角色名",
+    "appearance": "外貌描述",
+    "personality": "性格描述",
+    "abilities": "能力/技能描述",
+    "relationships": "与其他角色的关系"
+  },
+  "npcs": [
+    {
+      "name": "NPC名字",
+      "appearance": "外貌",
+      "personality": "性格",
+      "relationships": "与主角的关系",
+      "notes": "其他备注"
+    }
+  ],
+  "specialRules": "特殊规则/限制",
+  "writingPreferences": "写作偏好/叙事风格",
+  "displayNames": {
+    "user": "用户在对话中的显示名",
+    "assistant": "AI在对话中的显示名"
+  }
+}`
+        },
+        { role: 'user', content: text }
+      ],
+    }),
+  })
+
+  if (!response.ok) throw new Error(`解析失败: ${response.status}`)
+  const data = await response.json()
+  let content = data.choices[0].message.content as string
+
+  // 清理可能的markdown代码块包裹
+  content = content.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim()
+
+  return JSON.parse(content)
+}

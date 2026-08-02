@@ -35,6 +35,11 @@ export interface AppSettings {
     projectUrl: string
     anonKey: string
   }
+  dice: {
+    count: number
+    modelName: string
+    prompt: string
+  }
 }
 
 export const defaultSettings: AppSettings = {
@@ -67,5 +72,10 @@ export const defaultSettings: AppSettings = {
   supabase: {
     projectUrl: '',
     anonKey: '',
+  },
+  dice: {
+    count: 2,
+    modelName: '',
+    prompt: '',
   },
 }

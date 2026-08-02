@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { type Message, type MessageVersion, type TokenUsage } from '../types/chat'
 import { type AppSettings, defaultSettings } from '../types/settings'
-import { sendMessageStream, fetchModels, sendSummary } from '../stores/api'
+import { sendMessageStream, fetchModels, sendSummary, rollDice } from '../stores/api'
 import { getWorld, updateWorld } from '../stores/worlds'
 
 function getChatKey(wid?: string) { return wid ? `kadath-chat-${wid}` : 'kadath-main-chat' }
@@ -31,6 +31,10 @@ export default function WorldChat() {
   const [summaryContent, setSummaryContent] = useState('')
   const [summarizing, setSummarizing] = useState(false)
   const [oocMode, setOocMode] = useState(false)
+  const [diceResults, setDiceResults] = useState<string[]>([])
+  const [showDice, setShowDice] = useState(false)
+  const [rollingDice, setRollingDice] = useState(false)
+  const [expandedDice, setExpandedDice] = useState<number | null>(null)
   const [chapters, setChapters] = useState<{ id: string; title: string; summary: string }[]>([])
   const [viewingChapter, setViewingChapter] = useState<{ title: string; summary: string } | null>(null)
   const [quickModel, setQuickModel] = useState('')
@@ -268,6 +272,23 @@ export default function WorldChat() {
   }
 
   function handleKeyDown(e: React.KeyboardEvent) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }
+  async function handleRollDice() {
+    if (messages.length === 0 || rollingDice) return
+    setRollingDice(true); setShowDice(true); setDiceResults([]); setExpandedDice(null)
+    try {
+      const s = localStorage.getItem('kadath-settings')
+      const count = s ? (JSON.parse(s).dice?.count || 2) : 2
+      const results = await rollDice(messages, count)
+      setDiceResults(results)
+    } catch (err) { setError(err instanceof Error ? err.message : '掷骰失败'); setShowDice(false) }
+    finally { setRollingDice(false) }
+  }
+
+  function selectDiceResult(result: string) {
+    setShowDice(false); setDiceResults([]); setExpandedDice(null)
+    setInput(prev => (prev ? prev + '\n' : '') + `[骰子选择] ${result}\n请按照这个方向继续推进剧情。`)
+  }
+
   const thinkingLabels: Record<string, string> = { off: '关闭', light: '轻度', default: '默认', deep: '深度' }
   const CopyBtn = ({ id, content }: { id: string; content: string }) => (
     <button onClick={() => handleCopy(content, id)} className="text-stone-300 hover:text-stone-500 transition-colors" title="复制">
@@ -311,7 +332,8 @@ export default function WorldChat() {
           </div>
         )}
         {messages.length === 0 && <div className="text-center text-stone-400 text-sm pt-20">说点什么吧。</div>}
-        {messages.map(msg => {
+        {messages.map((msg, msgIndex) => {
+          const floor = msgIndex + 1
           const a = msg.role === 'assistant' ? getActiveVersion(msg) : null
           const userActive = msg.role === 'user' && msg.versions?.length ? msg.versions[msg.activeVersion ?? 0] : null
           let rawContent = a ? a.content : (userActive ? userActive.content : msg.content)
@@ -375,7 +397,8 @@ export default function WorldChat() {
                       <button onClick={() => handleDelete(msg.id)} className="text-stone-300 hover:text-red-400 transition-colors" title="删除"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
                     </div>
                     {du && <div className="relative"><button onClick={() => toggleUsage(msg.id)} className="text-xs text-stone-300 hover:text-stone-500 transition-colors">{du.totalTokens} tokens</button>
-                      {usageOpen[msg.id] && <div className="absolute bottom-6 right-0 p-2.5 rounded-lg bg-white border border-stone-200 shadow-sm text-xs text-stone-500 space-y-1 z-10 whitespace-nowrap"><div>输入：{du.promptTokens} tokens</div><div>输出：{du.completionTokens} tokens</div><div>用时：{formatDuration(du.duration)}</div></div>}</div>}
+                      {usageOpen[msg.id] && <div className="absolute bottom-6 right-0 p-2.5 rounded-lg bg-white border border-stone-200 shadow-sm text-xs text-stone-500 space-y-1 z-10 whitespace-nowrap"><div>楼层：#{floor}</div><div>输入：{du.promptTokens}
+ tokens</div><div>输出：{du.completionTokens} tokens</div><div>用时：{formatDuration(du.duration)}</div></div>}</div>}
                   </div>
                 )}
               </div>
@@ -413,7 +436,9 @@ export default function WorldChat() {
             </div>}
           </div>
           <button onClick={toggleStream} className={`px-2 py-1.5 rounded-md text-xs font-medium transition-colors hover:bg-stone-100 ${streamOn ? 'text-stone-600' : 'text-stone-300'}`} title={streamOn ? '流式输出：开' : '流式输出：关'}>流</button>
-          {worldId && <button onClick={() => setOocMode(!oocMode)} className={`px-2 py-1.5 rounded-md text-xs font-medium transition-colors hover:bg-stone-100 ${oocMode ? 'text-orange-500' : 'text-stone-400 hover:text-stone-600'}`} title={oocMode ? 'OOC模式：开（点击切回RP）' : 'OOC模式：关（点击切换到戏外）'}>{oocMode ? 'OOC' : 'RP'}</button>}
+          {worldId && <button onClick={handleRollDice} disabled={rollingDice || loading || messages.length === 0} className="px-2 py-1.5 rounded-md text-xs font-medium text-stone-400 hover:text-stone-600 hover:bg-stone-100 disabled:opacity-40 transition-colors" title="掷骰子生成剧情走向">🎲</button>}
+          {worldId && <button onClick={() => setOocMode(!oocMode)}
+ className={`px-2 py-1.5 rounded-md text-xs font-medium transition-colors hover:bg-stone-100 ${oocMode ? 'text-orange-500' : 'text-stone-400 hover:text-stone-600'}`} title={oocMode ? 'OOC模式：开（点击切回RP）' : 'OOC模式：关（点击切换到戏外）'}>{oocMode ? 'OOC' : 'RP'}</button>}
         </div>
         <div className="max-w-2xl mx-auto flex gap-3">
           <div className="relative flex-1">
@@ -430,6 +455,40 @@ export default function WorldChat() {
         </div>
         {worldId && messages.length > 0 && <div className="max-w-2xl mx-auto mt-2 flex justify-end"><button onClick={handleSummarize} disabled={summarizing || loading} className="text-xs text-stone-400 hover:text-stone-600 disabled:opacity-40 transition-colors">{summarizing ? '正在总结...' : '📋 总结本章并归档'}</button></div>}
       </div>
+
+      {showDice && (
+        <div className="fixed inset-0 z-50 bg-stone-900/50 flex items-center justify-center p-6" onClick={() => { if (!rollingDice) { setShowDice(false); setDiceResults([]); setExpandedDice(null) } }}>
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-stone-200">
+              <span className="text-sm text-stone-700 font-medium">🎲 剧情走向</span>
+              {!rollingDice && <button onClick={() => { setShowDice(false); setDiceResults([]); setExpandedDice(null) }} className="text-stone-400 hover:text-stone-600 transition-colors text-sm">取消</button>}
+            </div>
+            <div className="p-4">
+              {rollingDice ? (
+                <div className="text-center text-stone-400 text-sm py-8">🎲 正在投掷骰子...</div>
+              ) : diceResults.length > 0 ? (
+                <div className="space-y-2">
+                  {diceResults.map((result, idx) => (
+                    <div key={idx} className="rounded-lg border border-stone-200 overflow-hidden">
+                      <div className="flex items-center justify-between p-3 hover:bg-stone-50 transition-colors">
+                        <button onClick={() => setExpandedDice(expandedDice === idx ? null : idx)} className="flex-1 text-left text-sm text-stone-600 truncate">{idx + 1}. {result.slice(0, 15)}{result.length > 15 ? '...' : ''}</button>
+                        <button onClick={() => selectDiceResult(result)} className="ml-2 w-7 h-7 flex items-center justify-center rounded-full text-stone-400 hover:text-green-600 hover:bg-green-50 transition-colors shrink-0" title="选择此走向">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                        </button>
+                      </div>
+                      {expandedDice === idx && (
+                        <div className="px-3 pb-3 text-xs text-stone-500 leading-relaxed border-t border-stone-100 pt-2">{result}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-stone-400 text-sm py-8">没有生成结果。</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {viewingChapter && (
         <div className="fixed inset-0 z-50 bg-stone-900/50 flex items-center justify-center p-6" onClick={() => setViewingChapter(null)}>
