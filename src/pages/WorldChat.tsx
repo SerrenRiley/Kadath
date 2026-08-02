@@ -244,6 +244,12 @@ export default function WorldChat() {
     setMessages(p => [...p, um, am]); setInput(''); setExpanded(false); setLoading(true); setError(''); isStreamingRef.current = true; setThinkingOpen(p => ({ ...p, [aid]: true }))
     try {
       let contextMessages: Message[] = []
+      if (!worldId) {
+        const mainSummary = localStorage.getItem('kadath-main-summary')
+        if (mainSummary) {
+          contextMessages.push({ id: 'main-summary', role: 'system', content: `以下是之前对话的摘要：\n\n${mainSummary}`, timestamp: 0 })
+        }
+      }
       if (worldId) {
         const world = getWorld(worldId)
         if (world && world.setting.completedChapters.length > 0) {
@@ -305,6 +311,29 @@ export default function WorldChat() {
 
   function removePendingImage(index: number) {
     setPendingImages(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const [compressing, setCompressing] = useState(false)
+
+  async function handleCompress() {
+    if (messages.length === 0 || compressing) return
+    if (!confirm('确定要压缩上下文吗？\n\n当前对话将被总结为一段摘要，原始消息会被清空。摘要会自动拼入后续对话的上下文中。')) return
+    setCompressing(true)
+    try {
+      const dn2 = loadDisplayNames()
+      const chatContent = messages.map(m => `${m.role === 'user' ? (dn2.user || 'You') : (dn2.assistant || 'AI')}: ${m.content}`).join('\n\n')
+      const summary = await sendSummary(chatContent)
+      const existingSummary = localStorage.getItem('kadath-main-summary') || ''
+      const newSummary = existingSummary ? existingSummary + '\n\n---\n\n' + summary : summary
+      localStorage.setItem('kadath-main-summary', newSummary)
+      setMessages([])
+      localStorage.removeItem(getChatKey(worldId))
+      alert('✓ 上下文已压缩！摘要已保存。')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '压缩失败')
+    } finally {
+      setCompressing(false)
+    }
   }
 
   async function handleRollDice() {
@@ -498,6 +527,7 @@ export default function WorldChat() {
           )}
         </div>
                 {worldId && messages.length > 0 && <div className="max-w-2xl mx-auto mt-1 flex justify-end"><button onClick={() => { const d = loadDisplayNames(); let md = '# 对话记录\n\n'; messages.forEach(m => { md += `**${m.role === 'user' ? (d.user || 'You') : (d.assistant || 'AI')}**\n\n${m.content}\n\n---\n\n` }); const b = new Blob([md], { type: 'text/markdown' }); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = `对话记录-${new Date().toISOString().slice(0,10)}.md`; a.click(); URL.revokeObjectURL(u) }} className="text-xs text-stone-400 hover:text-stone-600 transition-colors"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-0.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>导出对话</button></div>}
+        {!worldId && messages.length > 0 && <div className="max-w-2xl mx-auto mt-1 flex justify-end"><button onClick={handleCompress} disabled={compressing || loading} className="text-xs text-stone-400 hover:text-stone-600 disabled:opacity-40 transition-colors"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-0.5"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>{compressing ? '正在压缩...' : '压缩上下文'}</button></div>}
 
         {worldId && messages.length > 0 && <div className="max-w-2xl mx-auto mt-2 flex justify-end"><button onClick={handleSummarize} disabled={summarizing || loading} className="text-xs text-stone-400 hover:text-stone-600 disabled:opacity-40 transition-colors"><span className="flex items-center gap-1">{summarizing ? '正在总结...' : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> 总结本章并归档</>}</span></button>
 </div>}
