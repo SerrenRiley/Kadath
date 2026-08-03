@@ -473,7 +473,7 @@ export default function WorldChat() {
                     </div>
                   </div>
                 ) : (               
-                  <div className={`text-sm leading-relaxed ${iu ? 'text-stone-600' : 'text-stone-800'}`}>{msg.images && msg.images.length > 0 && <div className="flex gap-2 mb-2 flex-wrap">{msg.images.map((img, i) => <img key={i} src={img.data} alt="" className="max-w-48 max-h-48 rounded-lg object-cover border border-stone-200 cursor-pointer" onClick={() => setViewingImage(img.data)} />)}</div>}<ReactMarkdown components={mdComponents}>{iu ? dc : dc.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think>[\s\S]*/g, '').trim()}</ReactMarkdown></div>
+                  <div className={`text-sm leading-relaxed ${iu ? 'text-stone-600' : 'text-stone-800'}`}>{msg.images && msg.images.length > 0 && <div className="flex gap-2 mb-2 flex-wrap">{msg.images.map((img, i) => <img key={i} src={img.data} alt="" className="max-w-48 max-h-48 rounded-lg object-cover border border-stone-200 cursor-pointer" onClick={() => setViewingImage(img.data)} />)}</div>}<ReactMarkdown components={mdComponents}>{iu ? dc : dc.replace(/<br\s*\/?>/gi, '').replace(/<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/g, '').replace(/<think(?:ing)?>[\s\S]*/g, '').trim()}</ReactMarkdown></div>
                 )}
                 {iu && !ie && msg.content && (
                   <div className="mt-2 flex justify-end">
