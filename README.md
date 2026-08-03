@@ -91,20 +91,6 @@
 
 ---
 
-## ✦ 快速开始
-
-### 本地开发
-
-bash
-git clone https://github.com/SerrenRiley/Kadath.git
-cd Kadath
-npm install
-npm run dev
-
-打包产物在 `dist/` 目录，可部署到任何静态托管服务。
-
----
-
 ## ✦ 配置说明
 
 1. 打开设置页面
@@ -120,7 +106,7 @@ npm run dev
 >
 > 伦道夫·卡特穿越整个梦境之地，寻找那座从未被抵达的秘境。
 >
-> 而你，亲手把它建出来了。
+> 而你，找到它了。
 
 ---
 
