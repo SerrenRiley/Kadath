@@ -54,13 +54,13 @@ export default function WorldChat() {
   const [thinkingLevel, setThinkingLevel] = useState(() => { const s = localStorage.getItem('kadath-settings'); if (s) { return JSON.parse(s).thinkingLevel || 'default' }; return 'default' })
   function cleanContent(content: string, hasThinking: boolean): string {
     if (!hasThinking) return content
-    return content.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think>[\s\S]*/g, '').trim()
+    return content.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think(?:ing)?>[\s\S]*/g, '').trim()
   }
 
   function extractThinkFromContent(content: string): { thinking: string; clean: string } {
-    const match = content.match(/<think>([\s\S]*?)<\/think>/)
+    const match = content.match(/<think(?:ing)?>([\s\S]*?)<\/think(?:ing)?>/)
     if (match) {
-      const clean = content.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').trim()
+      const clean = content.replace(/<br\s*\/?>/gi, '').replace(/<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/g, '').trim()
       return { thinking: match[1].trim(), clean }
     }
     return { thinking: '', clean: content }
@@ -216,13 +216,13 @@ export default function WorldChat() {
         const cleaned = p.map(m => {
           if (m.role !== 'assistant') return m
           if (m.thinking && m.content) {
-            const cleanedContent = m.content.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think>[\s\S]*/g, '').trim()
+            const cleanedContent = m.content.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think(?:ing)?>[\s\S]*/g, '').trim()
             return { ...m, content: cleanedContent }
           }
           if (m.versions) {
             const cleanedVersions = m.versions.map(v => {
               if (v.thinking && v.content) {
-                return { ...v, content: v.content.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think>[\s\S]*/g, '').trim() }
+                return { ...v, content: v.content.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think(?:ing)?>[\s\S]*/g, '').trim() }
               }
               return v
             })
@@ -309,13 +309,13 @@ export default function WorldChat() {
         const cleaned = p.map(m => {
           if (m.role !== 'assistant') return m
           if (m.thinking && m.content) {
-            const cleanedContent = m.content.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think>[\s\S]*/g, '').trim()
+            const cleanedContent = m.content.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think(?:ing)?>[\s\S]*/g, '').trim()
             return { ...m, content: cleanedContent }
           }
           if (m.versions) {
             const cleanedVersions = m.versions.map(v => {
               if (v.thinking && v.content) {
-                return { ...v, content: v.content.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think>[\s\S]*/g, '').trim() }
+                return { ...v, content: v.content.replace(/<br\s*\/?>/gi, '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think(?:ing)?>[\s\S]*/g, '').trim() }
               }
               return v
             })
