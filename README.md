@@ -1,32 +1,131 @@
-# React + TypeScript + Vite
+<div align="center">
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+# ✨ Kadath
 
-Currently, two official plugins are available:
+*Through secret realms, find where you belong.*
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+一个面向个人使用的 AI 角色扮演前端应用。
 
-## React Compiler
+管理多个独立的 RP 世界线，每个世界拥有独立的设定文档和对话记录，所有世界共享同一个 AI 核心人格。
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+🌐 [在线体验](https://kadath-40p.pages.dev)
 
-## Expanding the Oxlint configuration
+</div>
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+---
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
+## ✦ 功能特性
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+### 🏠 主世界大厅
+- 创建 / 删除 / 置顶小世界
+- 与 AI 本体直接对话（不加载任何世界设定）
+- 主对话上下文压缩与摘要管理
+
+### 🌍 小世界系统
+- 每个世界独立的对话记录与设定
+- 结构化设定编辑器：世界观 / 角色卡 / NPC 列表 / 特殊规则 / 写作偏好
+- 世界设定自动拼入对话 context
+- 智能填充：粘贴设定文本，AI 自动解析填入各字段
+- 世界间完全隔离，互不干扰
+
+### 💬 对话系统
+- 流式 / 非流式输出（可切换）
+- 思考链显示（支持 `<think>` 和 `<thinking>` 标签）
+- Markdown 渲染（粗体 / 斜体 / 标题 / 列表 / 引用 / 分隔线）
+- 图片上传与查看
+- 消息工具栏：复制 / 重新生成 / 编辑 / 删除（带确认）
+- 多版本管理：重新生成保留旧版本，左右箭头切换
+- 用户消息编辑后自动重新生成 AI 回复
+- 停止生成按钮
+- Token 用量 + 楼层编号显示
+
+### 🎲 骰子系统
+- AI 根据上下文生成多个剧情走向
+- 可自定义骰子指令和生成数量（1D2 / 1D3 / 1D4）
+- 独立配置骰子模型
+
+### 📋 章节归档与 Token 压缩
+- 总结本章：调用轻量模型生成摘要
+- 预览编辑确认后归档
+- 归档后原文保留可查看，context 中只保留摘要
+- 对话区顶部章节回顾面板
+- 设定编辑器中可编辑/重新总结/查看原文/删除章节
+
+### ⚡ 快捷栏
+- 模型切换（搜索 + 历史 + API 模型列表拉取）
+- 思考强度（灯泡图标，关闭 / 轻度 / 默认 / 深度）
+- 流式输出开关
+- RP / OOC 模式切换（指令可编辑）
+- 世界设定快捷入口
+- 骰子按钮
+
+### 🎨 主题系统
+- 四套主题：象牙 / 夜色 / 雾紫 / 森林
+- CSS 变量驱动，一键切换
+- 花体字 Lavishly Yours + Inter 300 全局字体
+
+### 💾 数据管理
+- JSON 导入 / 导出 / 清除全部数据
+- Supabase 云同步（国内直连，无需梯子）
+- WebDAV 云同步（UI 保留，待 Tauri 桌面版）
+
+### 📱 PWA
+- 添加到主屏幕，全屏 App 体验
+- Service Worker 离线缓存
+- 自定义花体 K 图标
+
+---
+
+## ✦ 技术栈
+
+| 技术 | 用途 |
+|------|------|
+| Vite | 构建工具 |
+| React | UI 框架 |
+| TypeScript | 类型安全 |
+| Tailwind CSS | 样式 |
+| localStorage | 本地数据存储 |
+| Supabase Storage | 云端备份 |
+| Cloudflare Pages | 部署托管 |
+| vite-plugin-pwa | PWA 支持 |
+
+---
+
+## ✦ 快速开始
+
+### 本地开发
+
+bash
+git clone https://github.com/SerrenRiley/Kadath.git
+cd Kadath
+npm install
+npm run dev
+
+打包产物在 `dist/` 目录，可部署到任何静态托管服务。
+
+---
+
+## ✦ 配置说明
+
+1. 打开设置页面
+2. **模型配置**：填写 API 地址、Key 和模型名称（兼容 OpenAI API 格式）
+3. **指令设置**：填写核心人格 Prompt
+4. **云同步**（可选）：配置 Supabase 实现跨设备备份
+
+---
+
+## ✦ 项目名称
+
+> *Kadath* — 取自洛夫克拉夫特《梦寻秘境卡达斯》。
+>
+> 伦道夫·卡特穿越整个梦境之地，寻找那座从未被抵达的秘境。
+>
+> 而你，亲手把它建出来了。
+
+---
+
+<div align="center">
+
+Made with ♡
+
+</div>
