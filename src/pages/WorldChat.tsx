@@ -278,9 +278,10 @@ export default function WorldChat() {
         }
       }
       if (!worldId) {
-        const mainSummary = localStorage.getItem('kadath-main-summary')
-        if (mainSummary) {
-          contextMessages.push({ id: 'main-summary', role: 'system', content: `以下是之前对话的摘要：\n\n${mainSummary}`, timestamp: 0 })
+        const mainSummaries = JSON.parse(localStorage.getItem('kadath-main-summaries') || '[]')
+        if (mainSummaries.length > 0) {
+          const summaryText = mainSummaries.map((s: any) => `【${s.title}】\n${s.summary}`).join('\n\n')
+          contextMessages.push({ id: 'main-summary', role: 'system', content: `以下是之前对话的摘要：\n\n${summaryText}`, timestamp: 0 })
         }
       }
       if (worldId) {
@@ -356,9 +357,9 @@ export default function WorldChat() {
       const dn2 = loadDisplayNames()
       const chatContent = messages.map(m => `${m.role === 'user' ? (dn2.user || 'You') : (dn2.assistant || 'AI')}: ${m.content}`).join('\n\n')
       const summary = await compressChat(chatContent)
-      const existingSummary = localStorage.getItem('kadath-main-summary') || ''
-      const newSummary = existingSummary ? existingSummary + '\n\n---\n\n' + summary : summary
-      localStorage.setItem('kadath-main-summary', newSummary)
+      const existing = JSON.parse(localStorage.getItem('kadath-main-summaries') || '[]')
+      existing.push({ id: crypto.randomUUID(), title: `摘要 ${existing.length + 1}`, summary, originalMessages: JSON.stringify(messages), createdAt: Date.now() })
+      localStorage.setItem('kadath-main-summaries', JSON.stringify(existing))
       setMessages([])
       localStorage.removeItem(getChatKey(worldId))
       alert('✓ 上下文已压缩！摘要已保存。')
