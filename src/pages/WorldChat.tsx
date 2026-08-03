@@ -244,6 +244,39 @@ export default function WorldChat() {
     setMessages(p => [...p, um, am]); setInput(''); setExpanded(false); setLoading(true); setError(''); isStreamingRef.current = true; setThinkingOpen(p => ({ ...p, [aid]: true }))
     try {
       let contextMessages: Message[] = []
+      if (worldId) {
+        const world = getWorld(worldId)
+        if (world) {
+          let settingText = ''
+          if (world.setting.worldview) settingText += `【世界观】\n${world.setting.worldview}\n\n`
+          if (world.setting.myCharacter.name) {
+            settingText += `【用户角色：${world.setting.myCharacter.name}】\n`
+            if (world.setting.myCharacter.appearance) settingText += `外貌：${world.setting.myCharacter.appearance}\n`
+            if (world.setting.myCharacter.personality) settingText += `性格：${world.setting.myCharacter.personality}\n`
+            if (world.setting.myCharacter.abilities) settingText += `能力：${world.setting.myCharacter.abilities}\n`
+            if (world.setting.myCharacter.relationships) settingText += `关系：${world.setting.myCharacter.relationships}\n`
+            settingText += '\n'
+          }
+          if (world.setting.npcs.length > 0) {
+            settingText += '【NPC】\n'
+            world.setting.npcs.forEach(npc => {
+              settingText += `${npc.name}：`
+              if (npc.personality) settingText += `性格-${npc.personality} `
+              if (npc.relationships) settingText += `关系-${npc.relationships} `
+              if (npc.notes) settingText += `备注-${npc.notes}`
+              settingText += '\n'
+            })
+            settingText += '\n'
+          }
+          if (world.setting.specialRules) settingText += `【特殊规则】\n${world.setting.specialRules}\n\n`
+          if (world.setting.writingPreferences) settingText += `【写作偏好】\n${world.setting.writingPreferences}\n\n`
+          if (settingText) contextMessages.push({ id: 'world-setting', role: 'system', content: settingText.trim(), timestamp: 0 })
+          if (world.setting.completedChapters.length > 0) {
+            const archiveSummary = world.setting.completedChapters.map(ch => `【${ch.title}】\n${ch.summary}`).join('\n\n')
+            contextMessages.push({ id: 'archive', role: 'system', content: `以下是之前章节的摘要：\n\n${archiveSummary}`, timestamp: 0 })
+          }
+        }
+      }
       if (!worldId) {
         const mainSummary = localStorage.getItem('kadath-main-summary')
         if (mainSummary) {
